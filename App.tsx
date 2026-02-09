@@ -1,20 +1,123 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import 'react-native-get-random-values';
+import React, { useEffect, useState } from 'react';
+import { View, ActivityIndicator } from 'react-native';
+import { Provider as PaperProvider, MD3LightTheme as DefaultTheme, Text, Button } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import AppNavigator from './src/navigation';
+import { observeAuth } from './src/store/auth';
+import LoginScreen from './src/screens/LoginScreen';
+import { initializeSubscription, syncSubscriptionUser } from './src/store/subscription';
+import { Platform } from 'react-native';
+
+const theme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: '#B8860B', // Dark Goldenrod - Premium Gold
+    onPrimary: '#FFFFFF',
+    primaryContainer: '#FFECB3',
+    onPrimaryContainer: '#5D4037',
+    secondary: '#4E342E', // Deep Brown/Charcoal
+    onSecondary: '#FFFFFF',
+    surface: '#FFFFFF',
+    background: '#FAFAFA',
+    outline: '#E0E0E0',
+  },
+};
+
+const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
+  const [initializing, setInitializing] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Initialize RevenueCat for Mobile
+    if (Platform.OS !== 'web') {
+      initializeSubscription();
+    }
+
+    console.log("Setting up auth observer...");
+    const unsubscribe = observeAuth((user) => {
+      console.log("Auth State Changed:", user ? `UID: ${user.uid}` : "No User");
+      setUser(user);
+
+      // Sync user with RevenueCat
+      if (Platform.OS !== 'web') {
+        syncSubscriptionUser(user?.uid || null);
+      }
+
+      if (initializing) setInitializing(false);
+
+      if (!user) {
+        console.log("No user session found. Waiting for login...");
+      }
+    });
+
+    // Timeout safety: if auth doesn't respond in 10s, stop loading anyway
+    const timeout = setTimeout(() => {
+      if (initializing) {
+        console.log("Auth initialization timeout.");
+        setInitializing(false);
+        setError("通信タイムアウト。オフラインまたは設定エラーの可能性があります。");
+      }
+    }, 10000);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timeout);
+    };
+  }, [initializing]);
+
+  const handleRetry = () => {
+    setError(null);
+    setInitializing(true);
+  };
+
+  if (initializing) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FAFAFA' }}>
+        <ActivityIndicator size="large" color="#B8860B" />
+        <Text style={{ marginTop: 16, color: '#8C7853', fontWeight: 'bold' }}>黄金比を読み込み中...</Text>
+      </View>
+    );
+  }
+
+  if (error && !user) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 }}>
+        <Text variant="headlineSmall" style={{ color: '#C62828', marginBottom: 16, fontWeight: 'bold' }}>接続エラー</Text>
+        <Text style={{ textAlign: 'center', marginBottom: 32, lineHeight: 24, color: '#5D4037' }}>{error}</Text>
+        <Button
+          mode="contained"
+          onPress={handleRetry}
+          contentStyle={{ height: 48 }}
+          style={{ borderRadius: 8, width: '100%' }}
+        >
+          再試行
+        </Button>
+      </View>
+    );
+  }
+
+  if (!user) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#FAFAFA' }}>
+        <LoginScreen onClose={() => { }} />
+      </View>
+    );
+  }
+
+  return <>{children}</>;
+};
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <SafeAreaProvider>
+      <PaperProvider theme={theme}>
+        <AuthWrapper>
+          <AppNavigator />
+        </AuthWrapper>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

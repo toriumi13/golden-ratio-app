@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "golden-ratio-app",
+    "name": "黄金比のレシピ帳",
     "slug": "golden-ratio-app",
+    "scheme": "golden-ratio-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,7 +14,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.seachicken.golden-ratio-app"
     },
     "android": {
       "adaptiveIcon": {
