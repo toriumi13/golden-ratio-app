@@ -26,7 +26,17 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "display": "standalone",
+      "description": "黄金比をメモして、あなたの料理を進化させるレシピ帳",
+      "backgroundColor": "#FAFAFA",
+      "themeColor": "#B8860B",
+      "startUrl": "/",
+      "splash": {
+        "image": "./assets/splash-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      }
     }
   }
 }

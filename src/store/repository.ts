@@ -120,6 +120,7 @@ export const createRecipe = async (name: string): Promise<Recipe> => {
         recipeId: recipeId,
         versionNumber: '1.0',
         createdAt: now,
+        baseServings: 2, // Default to 2 for new recipes
         sections: [],
         steps: []
     });
@@ -140,6 +141,22 @@ export const getRecipes = async (): Promise<Recipe[]> => {
     const snapshot = await getDocs(q);
 
     return snapshot.docs.map(doc => doc.data() as Recipe);
+};
+
+export const deleteRecipe = async (recipeId: string): Promise<void> => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error("Not authenticated");
+
+    // 1. Delete all versions first
+    const versionsCol = collection(db, 'recipes', recipeId, 'versions');
+    const versionsSnap = await getDocs(versionsCol);
+    for (const vDoc of versionsSnap.docs) {
+        await deleteDoc(vDoc.ref);
+    }
+
+    // 2. Delete the recipe document
+    const recipeRef = doc(db, 'recipes', recipeId);
+    await deleteDoc(recipeRef);
 };
 
 export const getRecipeDetails = async (recipeId: string): Promise<Recipe | null> => {
@@ -333,7 +350,8 @@ export const createNewVersionFromExisting = async (
         parentVersionId: sourceVersionId,
         versionNumber: newVersionNumber,
         notes: notes || '',
-        createdAt: now
+        createdAt: now,
+        baseServings: sourceData.baseServings || 2
     };
 
     const newVersionRef = doc(db, 'recipes', recipeId, 'versions', newVersionId);

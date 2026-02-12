@@ -6,7 +6,7 @@ import {
     createNewVersionFromExisting,
     getRecipes,
     updateIngredient,
-    deleteIngredient
+    getRecipeDetails
 } from './repository';
 
 export const seedDemoData = async () => {
@@ -19,72 +19,71 @@ export const seedDemoData = async () => {
 
     console.log('Starting demo data seed...');
 
-    // --- Recipe 1: 我が家の黄金比ハンバーグ ---
+    /**
+     * 我が家の黄金比ハンバーグ - 改善の系譜 (5世代)
+     */
     const burger = await createRecipe('黄金比ハンバーグ');
     const v1Id = burger.currentVersionId!;
 
-    // Sections for V1.0
-    const secTaneV1 = await addSection(burger.id, v1Id, 'タネ', 0);
-    const secSourceV1 = await addSection(burger.id, v1Id, 'ソース', 1);
+    // --- Ver 1.0: 基本のハンバーグ ---
+    const s1Tane = await addSection(burger.id, v1Id, 'タネ', 0);
+    const s1Source = await addSection(burger.id, v1Id, 'ソース', 1);
+    await addIngredient(burger.id, v1Id, s1Tane, '合挽肉', 300, 'g');
+    await addIngredient(burger.id, v1Id, s1Tane, '玉ねぎ', 0.5, '個');
+    await addIngredient(burger.id, v1Id, s1Tane, 'パン粉', 20, 'g');
+    await addIngredient(burger.id, v1Id, s1Tane, '牛乳', 30, 'ml');
+    await addIngredient(burger.id, v1Id, s1Tane, '塩', 3, 'g');
+    await addIngredient(burger.id, v1Id, s1Source, 'ケチャップ', 50, 'g');
+    await addIngredient(burger.id, v1Id, s1Source, 'ウスターソース', 50, 'g');
+    await addStep(burger.id, v1Id, '玉ねぎを炒めて冷ます', 0, [s1Tane]);
+    await addStep(burger.id, v1Id, '材料をすべて混ぜてこねる', 1, [s1Tane]);
+    await addStep(burger.id, v1Id, '両面を焼き、ソースを絡める', 2, [s1Tane, s1Source]);
 
-    // Ingredients for V1.0 - Tane
-    await addIngredient(burger.id, v1Id, secTaneV1, '合挽肉', 300, 'g');
-    await addIngredient(burger.id, v1Id, secTaneV1, '玉ねぎ', 0.5, '個');
-    await addIngredient(burger.id, v1Id, secTaneV1, 'パン粉', 20, 'g');
-    await addIngredient(burger.id, v1Id, secTaneV1, '牛乳', 30, 'ml');
-    await addIngredient(burger.id, v1Id, secTaneV1, '塩', 3, 'g');
+    // --- Ver 1.1: 野菜の甘みを追加 (玉ねぎ増量) ---
+    const v11Id = await createNewVersionFromExisting(burger.id, v1Id, '子供が食べやすいよう、玉ねぎを1個に増やして甘みを出す。ソースの比率を調整。');
+    let details = await getRecipeDetails(burger.id);
+    let v11 = details?.versions?.find(v => v.id === v11Id);
+    if (v11) {
+        const tane = v11.sections?.find(s => s.name === 'タネ');
+        const src = v11.sections?.find(s => s.name === 'ソース');
+        const onion = tane?.ingredients?.find(i => i.name === '玉ねぎ');
+        const ketchup = src?.ingredients?.find(i => i.name === 'ケチャップ');
+        if (onion) await updateIngredient(burger.id, v11Id, onion.id, '玉ねぎ', 1.0, '個');
+        if (ketchup) await updateIngredient(burger.id, v11Id, ketchup.id, 'ケチャップ', 40, 'g');
+    }
 
-    // Ingredients for V1.0 - Source
-    await addIngredient(burger.id, v1Id, secSourceV1, 'ケチャップ', 50, 'g');
-    await addIngredient(burger.id, v1Id, secSourceV1, 'ウスターソース', 50, 'g');
+    // --- Ver 1.2: 香辛料の探求 (ナツメグ導入) ---
+    const v12Id = await createNewVersionFromExisting(burger.id, v11Id, 'お肉の臭みを消すためにナツメグを少量追加。香りが一気に本格的に。');
+    details = await getRecipeDetails(burger.id);
+    const v12 = details?.versions?.find(v => v.id === v12Id);
+    if (v12) {
+        const tane = v12.sections?.find(s => s.name === 'タネ');
+        if (tane) await addIngredient(burger.id, v12Id, tane.id, 'ナツメグ', 0.5, 'g');
+    }
 
-    // Steps for V1.0
-    await addStep(burger.id, v1Id, '玉ねぎをみじん切りにして炒め、冷ます', 0, [secTaneV1]);
-    await addStep(burger.id, v1Id, 'ボウルにタネの材料をすべて入れ、粘りが出るまでこねる', 1, [secTaneV1]);
-    await addStep(burger.id, v1Id, '成形してフライパンで両面を焼く', 2, [secTaneV1]);
-    await addStep(burger.id, v1Id, '余分な油を捨て、ソースの材料を入れて煮詰める', 3, [secTaneV1, secSourceV1]);
-
-    // --- Create Ver 1.1 (Modified Version) ---
-    const v11Id = await createNewVersionFromExisting(burger.id, v1Id, '玉ねぎを増やしてジューシーさをアップ。ソースのケチャップを少し減らしてみた。');
-
-    // In V1.1, find the sections (they are duplicated)
-    const burgerDetails = (await import('./repository')).getRecipeDetails;
-    const recipeV11 = await burgerDetails(burger.id);
-    const ver11 = recipeV11?.versions?.find(v => v.id === v11Id);
-
-    if (ver11) {
-        const tane11 = ver11.sections?.find(s => s.name === 'タネ');
-        const source11 = ver11.sections?.find(s => s.name === 'ソース');
-
-        if (tane11 && tane11.ingredients) {
-            const onion = tane11.ingredients.find(i => i.name === '玉ねぎ');
-            if (onion) {
-                await updateIngredient(burger.id, v11Id, onion.id, '玉ねぎ', 1.0, '個');
-            }
-        }
-
-        if (source11 && source11.ingredients) {
-            const ketchup = source11.ingredients.find(i => i.name === 'ケチャップ');
-            if (ketchup) {
-                await updateIngredient(burger.id, v11Id, ketchup.id, 'ケチャップ', 40, 'g');
-            }
+    // --- Ver 1.3: ソースの革命 (赤ワイン) ---
+    const v13Id = await createNewVersionFromExisting(burger.id, v12Id, 'ソースに赤ワインを加えてコクを出す。バターを最後に入れて艶を出し。');
+    details = await getRecipeDetails(burger.id);
+    const v13 = details?.versions?.find(v => v.id === v13Id);
+    if (v13) {
+        const src = v13.sections?.find(s => s.name === 'ソース');
+        if (src) {
+            await addIngredient(burger.id, v13Id, src.id, '赤ワイン', 30, 'ml');
+            await addIngredient(burger.id, v13Id, src.id, 'バター', 10, 'g');
         }
     }
 
-    // --- Recipe 2: 至高のペペロンチーノ ---
-    const pasta = await createRecipe('至高のペペロンチーノ');
-    const pv1Id = pasta.currentVersionId!;
-    const secPasta = await addSection(pasta.id, pv1Id, 'メイン', 0);
-
-    await addIngredient(pasta.id, pv1Id, secPasta, 'パスタ(1.6mm)', 100, 'g');
-    await addIngredient(pasta.id, pv1Id, secPasta, 'にんにく', 2, '片');
-    await addIngredient(pasta.id, pv1Id, secPasta, '唐辛子', 1, '本');
-    await addIngredient(pasta.id, pv1Id, secPasta, 'オリーブオイル', 30, 'ml');
-    await addIngredient(pasta.id, pv1Id, secPasta, 'ゆで汁', 50, 'ml');
-
-    await addStep(pasta.id, pv1Id, 'にんにくを冷たいオイルから弱火でじっくり加熱する', 0, [secPasta]);
-    await addStep(pasta.id, pv1Id, 'パスタを表記時間より1分短く茹でる', 1, [secPasta]);
-    await addStep(pasta.id, pv1Id, 'オイルの中にゆで汁を入れ、乳化させる', 2, [secPasta]);
+    // --- Ver 2.0: 究極の肉汁 (ゼラチン技) ---
+    const v20Id = await createNewVersionFromExisting(burger.id, v13Id, '【完成】肉汁を閉じ込めるためにゼラチンパウダーを混ぜる。史上最高のジューシーさ。');
+    details = await getRecipeDetails(burger.id);
+    const v20 = details?.versions?.find(v => v.id === v20Id);
+    if (v20) {
+        const tane = v20.sections?.find(s => s.name === 'タネ');
+        const steps = v20.steps || [];
+        if (tane) await addIngredient(burger.id, v20Id, tane.id, '粉ゼラチン', 5, 'g');
+        // Update first step description
+        await addStep(burger.id, v20Id, 'ひき肉に塩とゼラチンを入れ、白っぽくなるまで練るのがコツ', 0, [tane.id]);
+    }
 
     console.log('Demo data seed completed successfully!');
 };

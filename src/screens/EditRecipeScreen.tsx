@@ -37,6 +37,11 @@ export default function EditRecipeScreen() {
     const [stepDescription, setStepDescription] = useState('');
     const [selectedSectionIds, setSelectedSectionIds] = useState<string[]>([]);
 
+    // Magic Import States
+    const [showImportDialog, setShowImportDialog] = useState(false);
+    const [importText, setImportText] = useState('');
+    const [isImporting, setIsImporting] = useState(false);
+
     // Counter to force TextInput remount (fixes Japanese IME issues)
     const [dialogKey, setDialogKey] = useState(0);
 
@@ -51,7 +56,6 @@ export default function EditRecipeScreen() {
         loadData();
     }, [recipeId]);
 
-    // Helper to get the version we are currently editing
     const currentVersion = recipe?.versions?.find(v => v.id === versionId) || recipe?.versions?.[0];
 
     const handleSaveRecipeName = async () => {
@@ -76,14 +80,12 @@ export default function EditRecipeScreen() {
 
     const handleSaveSection = async () => {
         if (!sectionName.trim() || !currentVersion) return;
-
         if (editingSectionId) {
             await updateSection(recipeId, currentVersion.id, editingSectionId, sectionName.trim());
         } else {
             const nextIndex = currentVersion.sections?.length || 0;
             await addSection(recipeId, currentVersion.id, sectionName.trim(), nextIndex);
         }
-
         setShowSectionDialog(false);
         loadData();
     };
@@ -108,19 +110,16 @@ export default function EditRecipeScreen() {
 
     const handleSaveIngredient = async () => {
         if (!currentSectionId || !ingredientName.trim()) return;
-
         const quantity = parseFloat(ingredientQuantity);
         if (isNaN(quantity)) {
             Alert.alert('エラー', '分量は数値で入力してください');
             return;
         }
-
         if (editingIngredientId && currentVersion) {
             await updateIngredient(recipeId, currentVersion.id, editingIngredientId, ingredientName.trim(), quantity, ingredientUnit.trim() || 'g');
         } else if (currentVersion) {
             await addIngredient(recipeId, currentVersion.id, currentSectionId, ingredientName.trim(), quantity, ingredientUnit.trim() || 'g');
         }
-
         setShowIngredientDialog(false);
         loadData();
     };
@@ -142,14 +141,12 @@ export default function EditRecipeScreen() {
 
     const handleSaveStep = async () => {
         if (!stepDescription.trim() || !currentVersion) return;
-
         if (editingStepId) {
             await updateStep(recipeId, currentVersion.id, editingStepId, stepDescription.trim(), selectedSectionIds);
         } else {
             const nextIndex = currentVersion.steps?.length || 0;
             await addStep(recipeId, currentVersion.id, stepDescription.trim(), nextIndex, selectedSectionIds);
         }
-
         setShowStepDialog(false);
         loadData();
     };
@@ -180,7 +177,6 @@ export default function EditRecipeScreen() {
         setSelectedSectionIds(prev => prev.includes(sectionId) ? prev.filter(id => id !== sectionId) : [...prev, sectionId]);
     };
 
-    if (loading) return <View style={styles.container}><Text>読み込み中...</Text></View>;
 
     return (
         <View style={styles.container}>
@@ -196,7 +192,6 @@ export default function EditRecipeScreen() {
             </Appbar.Header>
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
-                {/* Recipe Name Card */}
                 <Card style={styles.card} elevation={1}>
                     <Card.Content>
                         <View style={styles.cardInfoRow}>
@@ -212,21 +207,12 @@ export default function EditRecipeScreen() {
                                 style={[styles.nativeInput, { flex: 1 }]}
                                 returnKeyType="done"
                             />
-                            <Button
-                                mode="contained"
-                                onPress={handleSaveRecipeName}
-                                style={styles.inlineActionBtn}
-                                compact
-                            >
-                                更新
-                            </Button>
+                            <Button mode="contained" onPress={handleSaveRecipeName} style={styles.inlineActionBtn} compact>更新</Button>
                         </View>
                     </Card.Content>
                 </Card>
 
-                {/* Section Title */}
                 <Text style={styles.mainSectionTitle}>材料・グループ</Text>
-
                 {currentVersion?.sections?.map((section) => {
                     const maxQty = Math.max(...(section.ingredients?.map(i => i.quantity) || [1]));
                     return (
@@ -242,9 +228,7 @@ export default function EditRecipeScreen() {
                                     <IconButton icon="delete-outline" size={24} iconColor="#FFAB91" onPress={() => handleDeleteSection(section.id, section.name)} />
                                 </View>
                             </View>
-
                             <Divider style={styles.divider} />
-
                             <View style={styles.ingredientsList}>
                                 {section.ingredients?.map((ing) => (
                                     <View key={ing.id} style={styles.ingItemContainer}>
@@ -258,47 +242,30 @@ export default function EditRecipeScreen() {
                                                 <IconButton icon="close" size={18} iconColor="#AAA" onPress={() => handleDeleteIngredient(ing.id, ing.name)} />
                                             </View>
                                         </View>
-                                        {/* Ratio Visualizer (UI Aim 3) */}
                                         <View style={styles.ratioBarBg}>
                                             <View style={[styles.ratioBarFill, { width: `${(ing.quantity / maxQty) * 100}%` }]} />
                                         </View>
                                     </View>
                                 ))}
-                                {(!section.ingredients || section.ingredients.length === 0) && (
-                                    <Text style={styles.emptyHintText}>材料がありません。右上の＋から追加してください。</Text>
-                                )}
                             </View>
                         </Card>
                     );
                 })}
+                <Button mode="outlined" icon="plus" onPress={() => openSectionDialog()} style={styles.addSectionBtn} textColor={theme.colors.primary}>セクションを追加</Button>
 
-                <Button
-                    mode="outlined"
-                    icon="plus"
-                    onPress={() => openSectionDialog()}
-                    style={styles.addSectionBtn}
-                    textColor={theme.colors.primary}
-                >
-                    セクションを追加
-                </Button>
-
-                {/* Steps Section */}
                 <Text style={styles.mainSectionTitle}>調理工程</Text>
-
                 <Card style={[styles.card, { paddingBottom: 8 }]} elevation={1}>
                     {currentVersion?.steps?.map((step, index) => (
                         <View key={step.id}>
                             <View style={styles.stepEditItem}>
-                                <View style={styles.stepIndexCircle}>
-                                    <Text style={styles.stepIndexText}>{index + 1}</Text>
-                                </View>
+                                <View style={styles.stepIndexCircle}><Text style={styles.stepIndexText}>{index + 1}</Text></View>
                                 <View style={styles.stepBody}>
                                     <Text style={styles.stepDescText}>{step.description}</Text>
                                     {step.stepSections && step.stepSections.length > 0 && (
                                         <View style={styles.stepTagContainer}>
                                             {step.stepSections.map(ss => (
                                                 <Surface key={ss.id} style={styles.stepTag} elevation={0}>
-                                                    <Text style={styles.stepTagText}>{ss.section?.name}</Text>
+                                                    <Text style={styles.stepTagText}>{currentVersion?.sections?.find(s => s.id === ss.sectionId)?.name}</Text>
                                                 </Surface>
                                             ))}
                                         </View>
@@ -312,19 +279,11 @@ export default function EditRecipeScreen() {
                             {index < (currentVersion.steps?.length || 0) - 1 && <Divider style={styles.stepDivider} />}
                         </View>
                     ))}
-
-                    <Button
-                        mode="text"
-                        icon="plus"
-                        onPress={() => openStepDialog()}
-                        style={{ marginTop: 8 }}
-                    >
-                        工程を追加
-                    </Button>
+                    <Button mode="text" icon="plus" onPress={() => openStepDialog()} style={{ marginTop: 8 }}>工程を追加</Button>
                 </Card>
             </ScrollView>
 
-            {/* Section Dialog */}
+            {/* Dialogs */}
             <Portal>
                 <Dialog visible={showSectionDialog} onDismiss={() => setShowSectionDialog(false)} style={styles.dialog}>
                     <Dialog.Title style={styles.dialogTitle}>{editingSectionId ? 'グループ名を編集' : '新しいグループ'}</Dialog.Title>
@@ -333,29 +292,25 @@ export default function EditRecipeScreen() {
                             key={`section-${dialogKey}`}
                             defaultValue={sectionName}
                             onEndEditing={(e) => setSectionName(e.nativeEvent.text)}
-                            placeholder="例: タネ、ソース、下準備"
+                            placeholder="例: タネ、ソース"
                             style={styles.dialogInput}
                             autoFocus
                         />
                     </Dialog.Content>
                     <Dialog.Actions>
                         <Button onPress={() => setShowSectionDialog(false)} textColor="#888">キャンセル</Button>
-                        <Button onPress={handleSaveSection} mode="contained">{editingSectionId ? '更新' : '作成'}</Button>
+                        <Button onPress={handleSaveSection} mode="contained">保存</Button>
                     </Dialog.Actions>
                 </Dialog>
-            </Portal>
 
-            {/* Ingredient Dialog */}
-            <Portal>
                 <Dialog visible={showIngredientDialog} onDismiss={() => setShowIngredientDialog(false)} style={styles.dialog}>
                     <Dialog.Title style={styles.dialogTitle}>{editingIngredientId ? '材料を編集' : '材料を追加'}</Dialog.Title>
                     <Dialog.Content>
-                        <Text style={styles.inputLabel}>材料の名前</Text>
+                        <Text style={styles.inputLabel}>名前</Text>
                         <RNTextInput
                             key={`ing-name-${dialogKey}`}
                             defaultValue={ingredientName}
                             onEndEditing={(e) => setIngredientName(e.nativeEvent.text)}
-                            placeholder="例: 強力粉、牛乳"
                             style={styles.dialogInput}
                             autoFocus
                         />
@@ -366,7 +321,6 @@ export default function EditRecipeScreen() {
                                     key={`ing-qty-${dialogKey}`}
                                     defaultValue={ingredientQuantity}
                                     onEndEditing={(e) => setIngredientQuantity(e.nativeEvent.text)}
-                                    placeholder="200"
                                     keyboardType="numeric"
                                     style={styles.dialogInput}
                                 />
@@ -377,7 +331,6 @@ export default function EditRecipeScreen() {
                                     key={`ing-unit-${dialogKey}`}
                                     defaultValue={ingredientUnit}
                                     onEndEditing={(e) => setIngredientUnit(e.nativeEvent.text)}
-                                    placeholder="g"
                                     style={styles.dialogInput}
                                 />
                             </View>
@@ -385,13 +338,10 @@ export default function EditRecipeScreen() {
                     </Dialog.Content>
                     <Dialog.Actions>
                         <Button onPress={() => setShowIngredientDialog(false)} textColor="#888">キャンセル</Button>
-                        <Button onPress={handleSaveIngredient} mode="contained">{editingIngredientId ? '更新' : '追加'}</Button>
+                        <Button onPress={handleSaveIngredient} mode="contained">保存</Button>
                     </Dialog.Actions>
                 </Dialog>
-            </Portal>
 
-            {/* Step Dialog */}
-            <Portal>
                 <Dialog visible={showStepDialog} onDismiss={() => setShowStepDialog(false)} style={styles.dialog}>
                     <Dialog.Title style={styles.dialogTitle}>{editingStepId ? '工程を編集' : '工程を追加'}</Dialog.Title>
                     <Dialog.Content>
@@ -400,31 +350,24 @@ export default function EditRecipeScreen() {
                             key={`step-${dialogKey}`}
                             defaultValue={stepDescription}
                             onEndEditing={(e) => setStepDescription(e.nativeEvent.text)}
-                            placeholder="例: 粘り気が出るまでしっかりこねる"
                             multiline
-                            numberOfLines={4}
-                            style={[styles.dialogInput, { minHeight: 100, textAlignVertical: 'top' }]}
+                            style={[styles.dialogInput, { minHeight: 80 }]}
                             autoFocus
                         />
-                        <Text style={[styles.inputLabel, { marginTop: 16 }]}>この工程で使う材料グループ</Text>
-                        <ScrollView style={{ maxHeight: 150 }}>
-                            {currentVersion?.sections?.map(section => (
-                                <View key={section.id} style={styles.checkboxRow}>
-                                    <Checkbox
-                                        status={selectedSectionIds.includes(section.id) ? 'checked' : 'unchecked'}
-                                        onPress={() => toggleSectionSelection(section.id)}
-                                        color={theme.colors.primary}
-                                    />
-                                    <Text onPress={() => toggleSectionSelection(section.id)} style={styles.checkboxLabel}>
-                                        {section.name}
-                                    </Text>
-                                </View>
-                            ))}
-                        </ScrollView>
+                        <Text style={[styles.inputLabel, { marginTop: 12 }]}>使うグループ</Text>
+                        {currentVersion?.sections?.map(section => (
+                            <View key={section.id} style={styles.checkboxRow}>
+                                <Checkbox
+                                    status={selectedSectionIds.includes(section.id) ? 'checked' : 'unchecked'}
+                                    onPress={() => toggleSectionSelection(section.id)}
+                                />
+                                <Text onPress={() => toggleSectionSelection(section.id)}>{section.name}</Text>
+                            </View>
+                        ))}
                     </Dialog.Content>
                     <Dialog.Actions>
                         <Button onPress={() => setShowStepDialog(false)} textColor="#888">キャンセル</Button>
-                        <Button onPress={handleSaveStep} mode="contained">{editingStepId ? '更新' : '追加'}</Button>
+                        <Button onPress={handleSaveStep} mode="contained">保存</Button>
                     </Dialog.Actions>
                 </Dialog>
             </Portal>
@@ -433,253 +376,50 @@ export default function EditRecipeScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#FAFAFA'
-    },
-    appbar: {
-        backgroundColor: '#FFF',
-    },
-    appbarTitle: {
-        fontWeight: 'bold',
-        color: '#4E342E',
-    },
-    appbarSubtitle: {
-        color: '#999',
-    },
-    scrollContent: {
-        padding: 16,
-        paddingBottom: 60,
-    },
-    mainSectionTitle: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#8C7853',
-        letterSpacing: 2,
-        marginTop: 24,
-        marginBottom: 12,
-        marginLeft: 4,
-        textTransform: 'uppercase',
-    },
-    card: {
-        marginBottom: 16,
-        borderRadius: 16,
-        backgroundColor: '#FFF',
-        borderWidth: 1,
-        borderColor: '#F0F0F0',
-    },
-    sectionCard: {
-        marginBottom: 16,
-        borderRadius: 16,
-        backgroundColor: '#FFF',
-        borderWidth: 1,
-        borderColor: '#F0F0F0',
-    },
-    cardInfoRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    cardLabel: {
-        fontSize: 13,
-        fontWeight: 'bold',
-        color: '#8C7853',
-        marginLeft: 4,
-    },
-    inputActionRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    nativeInput: {
-        backgroundColor: '#F8F8F8',
-        borderRadius: 8,
-        padding: 12,
-        fontSize: 16,
-        color: '#333',
-        borderWidth: 1,
-        borderColor: '#EEE',
-    },
-    inlineActionBtn: {
-        borderRadius: 8,
-    },
-    sectionHeaderRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-    },
-    sectionTitleBlock: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    sectionBadge: {
-        fontSize: 9,
-        fontWeight: 'bold',
-        backgroundColor: '#EFEBE9',
-        color: '#8C7853',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 4,
-        marginRight: 8,
-        letterSpacing: 0.5,
-    },
-    sectionNameText: {
-        fontWeight: 'bold',
-        color: '#4E342E',
-    },
-    actionRow: {
-        flexDirection: 'row',
-    },
-    divider: {
-        backgroundColor: '#F5F5F5',
-    },
-    ingredientsList: {
-        padding: 16,
-    },
-    ingItemContainer: {
-        marginBottom: 12,
-    },
-    ingMainRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 6,
-    },
-    ingInfo: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        gap: 8,
-        flex: 1,
-    },
-    ingNameText: {
-        fontSize: 15,
-        color: '#333',
-    },
-    ingQtyText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#B8860B',
-    },
-    ingActions: {
-        flexDirection: 'row',
-    },
-    ratioBarBg: {
-        height: 3,
-        backgroundColor: '#F0F0F0',
-        borderRadius: 1.5,
-        overflow: 'hidden',
-    },
-    ratioBarFill: {
-        height: '100%',
-        backgroundColor: '#B8860B',
-        borderRadius: 1.5,
-    },
-    emptyHintText: {
-        fontSize: 12,
-        color: '#AAA',
-        textAlign: 'center',
-        paddingVertical: 8,
-    },
-    addSectionBtn: {
-        marginBottom: 24,
-        borderColor: '#B8860B',
-        borderStyle: 'dashed',
-        borderRadius: 12,
-    },
-    stepEditItem: {
-        flexDirection: 'row',
-        padding: 16,
-        alignItems: 'flex-start',
-    },
-    stepIndexCircle: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: '#F5F5F5',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-        marginTop: 2,
-    },
-    stepIndexText: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: '#888',
-    },
-    stepBody: {
-        flex: 1,
-    },
-    stepDescText: {
-        fontSize: 14,
-        lineHeight: 20,
-        color: '#444',
-    },
-    stepTagContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        marginTop: 8,
-        gap: 6,
-    },
-    stepTag: {
-        backgroundColor: '#FBFBFB',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 4,
-        borderWidth: 1,
-        borderColor: '#F0F0F0',
-    },
-    stepTagText: {
-        fontSize: 10,
-        color: '#888',
-    },
-    stepActions: {
-        flexDirection: 'row',
-        marginLeft: 8,
-    },
-    stepDivider: {
-        marginHorizontal: 16,
-        backgroundColor: '#F9F9F9',
-    },
-    dialog: {
-        borderRadius: 20,
-        backgroundColor: '#FFF',
-    },
-    dialogTitle: {
-        fontWeight: 'bold',
-        color: '#4E342E',
-        fontSize: 18,
-    },
-    dialogInput: {
-        backgroundColor: '#F8F8F8',
-        borderRadius: 8,
-        padding: 12,
-        fontSize: 16,
-        color: '#333',
-        borderWidth: 1,
-        borderColor: '#EEE',
-    },
-    dialogInputRow: {
-        flexDirection: 'row',
-        gap: 12,
-        marginTop: 12,
-    },
-    inputLabel: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: '#8C7853',
-        marginBottom: 6,
-        marginLeft: 4,
-    },
-    checkboxRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginVertical: 2,
-    },
-    checkboxLabel: {
-        fontSize: 14,
-        color: '#555',
-    },
+    container: { flex: 1, backgroundColor: '#FAFAFA' },
+    appbar: { backgroundColor: '#FFF' },
+    appbarTitle: { fontWeight: 'bold', color: '#4E342E' },
+    appbarSubtitle: { color: '#999' },
+    scrollContent: { padding: 16, paddingBottom: 60 },
+    card: { marginBottom: 16, borderRadius: 16, borderWidth: 1, borderColor: '#F0F0F0' },
+    sectionCard: { marginBottom: 16, borderRadius: 16, borderWidth: 1, borderColor: '#F0F0F0' },
+    cardInfoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+    cardLabel: { fontSize: 13, fontWeight: 'bold', color: '#8C7853', marginLeft: 4 },
+    inputActionRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    nativeInput: { backgroundColor: '#F8F8F8', borderRadius: 8, padding: 12, fontSize: 16, borderWidth: 1, borderColor: '#EEE' },
+    inlineActionBtn: { borderRadius: 8 },
+    mainSectionTitle: { fontSize: 14, fontWeight: 'bold', color: '#8C7853', marginTop: 24, marginBottom: 12, marginLeft: 4 },
+    sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8 },
+    sectionTitleBlock: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+    sectionBadge: { fontSize: 9, fontWeight: 'bold', backgroundColor: '#EFEBE9', color: '#8C7853', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginRight: 8 },
+    sectionNameText: { fontWeight: 'bold', color: '#4E342E' },
+    actionRow: { flexDirection: 'row' },
+    divider: { backgroundColor: '#F5F5F5' },
+    ingredientsList: { padding: 16 },
+    ingItemContainer: { marginBottom: 12 },
+    ingMainRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+    ingInfo: { flexDirection: 'row', alignItems: 'baseline', gap: 8, flex: 1 },
+    ingNameText: { fontSize: 15, color: '#333' },
+    ingQtyText: { fontSize: 14, fontWeight: 'bold', color: '#B8860B' },
+    ingActions: { flexDirection: 'row' },
+    ratioBarBg: { height: 3, backgroundColor: '#F0F0F0', borderRadius: 1.5, overflow: 'hidden' },
+    ratioBarFill: { height: '100%', backgroundColor: '#B8860B', borderRadius: 1.5 },
+    addSectionBtn: { marginBottom: 24, borderColor: '#B8860B', borderStyle: 'dashed', borderRadius: 12 },
+    stepEditItem: { flexDirection: 'row', padding: 16, alignItems: 'flex-start' },
+    stepIndexCircle: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center', marginRight: 12, marginTop: 2 },
+    stepIndexText: { fontSize: 12, fontWeight: 'bold', color: '#888' },
+    stepBody: { flex: 1 },
+    stepDescText: { fontSize: 14, lineHeight: 20, color: '#444' },
+    stepTagContainer: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 8, gap: 6 },
+    stepTag: { backgroundColor: '#FBFBFB', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: '#F0F0F0' },
+    stepTagText: { fontSize: 10, color: '#888' },
+    stepActions: { flexDirection: 'row', marginLeft: 8 },
+    stepDivider: { marginHorizontal: 16, backgroundColor: '#F9F9F9' },
+    dialog: { borderRadius: 20, backgroundColor: '#FFF' },
+    dialogTitle: { fontWeight: 'bold', color: '#4E342E', fontSize: 18 },
+    dialogInput: { backgroundColor: '#F8F8F8', borderRadius: 8, padding: 12, fontSize: 16, borderWidth: 1, borderColor: '#EEE' },
+    dialogInputRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
+    inputLabel: { fontSize: 12, fontWeight: 'bold', color: '#8C7853', marginBottom: 6, marginLeft: 4 },
+    checkboxRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 2 },
+    tabRow: { flexDirection: 'row', marginBottom: 16, backgroundColor: '#F5F5F5', borderRadius: 8, padding: 4 },
 });

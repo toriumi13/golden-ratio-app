@@ -24,18 +24,43 @@ export default function RecipeDetailScreen() {
     const [dialogKey, setDialogKey] = useState(0);
     const [focusedStepId, setFocusedStepId] = useState<string | null>(null);
     const [servings, setServings] = useState(1);
+    const [isStandardScaler, setIsStandardScaler] = useState(false);
+    const [scalerBaseIngredientId, setScalerBaseIngredientId] = useState<string | null>(null);
+    const [scalerRelativeFactor, setScalerRelativeFactor] = useState(1);
     const [showPaywall, setShowPaywall] = useState(false);
     const [paywallReason, setPaywallReason] = useState<string | null>(null);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
 
+    const handleToggleScaler = async () => {
+        if (!isStandardScaler) {
+            // Check plan before enabling
+            if (userProfile?.plan !== 'standard') {
+                setPaywallReason('黄金比スケーラー（逆算機能）はスタンダードプラン限定の機能です。');
+                setShowPaywall(true);
+                return;
+            }
+        }
+        setIsStandardScaler(!isStandardScaler);
+        setScalerRelativeFactor(1); // Reset when toggling
+    };
+
+    const handleServingsChange = (delta: number) => () => {
+        if (userProfile?.plan !== 'standard') {
+            setPaywallReason('人数の変更（スケーラー機能）はスタンダードプラン限定の機能です。');
+            setShowPaywall(true);
+            return;
+        }
+        setServings(s => Math.max(1, s + delta));
+    };
+
     const loadData = useCallback(async () => {
         const data = await getRecipeDetails(recipeId);
         setRecipe(data);
         if (data && data.versions && data.versions.length > 0 && !selectedVersionId) {
-            // Default to current version linked in recipe, or the latest created
             const current = data.versions.find(v => v.id === data.currentVersionId) || data.versions[0];
             setSelectedVersionId(current.id);
+            setServings(current.baseServings || 1);
         }
         const profile = await getUserProfile();
         setUserProfile(profile);
@@ -230,61 +255,109 @@ export default function RecipeDetailScreen() {
                     </Card>
                 )}
 
-                {/* Scaler / Servings Control (UI Aim 2) */}
+                {/* Scaler / Servings Control */}
                 <View style={styles.scalerContainer}>
-                    <View style={styles.scalerInfo}>
-                        <IconButton icon="account-group" size={20} iconColor={theme.colors.secondary} style={{ margin: 0 }} />
-                        <Text style={styles.scalerLabel}>分量を調整</Text>
-                    </View>
-                    <View style={styles.stepper}>
-                        <IconButton
-                            icon="minus"
-                            size={18}
-                            mode="outlined"
-                            disabled={servings <= 1}
-                            onPress={() => setServings(s => Math.max(1, s - 1))}
-                            style={styles.stepperBtn}
-                        />
-                        <View style={styles.servingsCount}>
-                            <Text style={styles.servingsNum}>{servings}</Text>
-                            <Text style={styles.servingsUnit}>人分</Text>
+                    <View style={styles.scalerHeader}>
+                        <View style={styles.scalerInfo}>
+                            <IconButton icon="account-group" size={20} iconColor={theme.colors.secondary} style={{ margin: 0 }} />
+                            <Text style={styles.scalerLabel}>分量を調整</Text>
                         </View>
-                        <IconButton
-                            icon="plus"
-                            size={18}
-                            mode="outlined"
-                            onPress={() => setServings(s => s + 1)}
-                            style={styles.stepperBtn}
-                        />
+
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Text variant="labelSmall" style={{ color: isStandardScaler ? '#B8860B' : '#888', fontWeight: 'bold' }}>黄金比スケーラー</Text>
+                            <IconButton
+                                icon={isStandardScaler ? "calculator" : "calculator-variant-outline"}
+                                iconColor={isStandardScaler ? "#B8860B" : "#888"}
+                                size={20}
+                                onPress={handleToggleScaler}
+                            />
+                        </View>
                     </View>
+
+                    {!isStandardScaler ? (
+                        <View style={styles.stepper}>
+                            <IconButton
+                                icon="minus"
+                                size={18}
+                                mode="outlined"
+                                disabled={servings <= 1}
+                                onPress={handleServingsChange(-1)}
+                                style={styles.stepperBtn}
+                            />
+                            <View style={styles.servingsCount}>
+                                <Text style={styles.servingsNum}>{servings}</Text>
+                                <Text style={styles.servingsUnit}>人分</Text>
+                            </View>
+                            <IconButton
+                                icon="plus"
+                                size={18}
+                                mode="outlined"
+                                onPress={handleServingsChange(1)}
+                                style={styles.stepperBtn}
+                            />
+                        </View>
+                    ) : (
+                        <View style={styles.standardScalerActive}>
+                            <Text style={styles.scalerActiveTxt}>
+                                💡 材料の分量を入力して全体を自動調整
+                            </Text>
+                        </View>
+                    )}
                 </View>
 
                 {/* Ingredients Section */}
                 <Text variant="titleMedium" style={styles.mainSectionTitle}>材料</Text>
 
+
                 {currentVersion?.sections?.map((section) => {
-                    const maxQty = Math.max(...(section.ingredients?.map(i => i.quantity) || [1]));
+                    const maxQty = Math.max(...(section.ingredients?.map(i => {
+                        const baseVal = i.quantity * servings;
+                        return isStandardScaler ? baseVal * scalerRelativeFactor : baseVal;
+                    }) || [1]));
+
                     return (
                         <View key={section.id} style={styles.sectionContainer}>
-                            <Text variant="labelLarge" style={{ color: theme.colors.primary, marginBottom: 12, fontWeight: 'bold' }}>
-                                {section.name.toUpperCase()}
+                            <Text variant="titleMedium" style={{ color: '#4E342E', marginBottom: 8, fontWeight: 'bold' }}>
+                                {section.name}
                             </Text>
 
-                            {section.ingredients?.map((ing) => (
-                                <View key={ing.id} style={{ marginBottom: 12 }}>
-                                    <View style={styles.row}>
-                                        <Text style={styles.ingName}>{ing.name}</Text>
-                                        <Text style={styles.ingQty}>
-                                            {(ing.quantity * servings).toFixed(1).replace(/\.0$/, '')}
-                                            <Text style={{ fontSize: 10, fontWeight: 'normal' }}>{ing.unit}</Text>
-                                        </Text>
+                            {section.ingredients?.map((ing) => {
+                                const baseValue = ing.quantity * servings;
+                                const displayValue = isStandardScaler ? baseValue * scalerRelativeFactor : baseValue;
+
+                                return (
+                                    <View key={ing.id} style={{ marginBottom: 12 }}>
+                                        <View style={styles.row}>
+                                            <Text style={styles.ingName}>{ing.name}</Text>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                {isStandardScaler ? (
+                                                    <RNTextInput
+                                                        keyboardType="numeric"
+                                                        defaultValue={displayValue.toFixed(1).replace(/\.0$/, '')}
+                                                        onChangeText={(text) => {
+                                                            const val = parseFloat(text);
+                                                            if (!isNaN(val) && val > 0) {
+                                                                setScalerBaseIngredientId(ing.id);
+                                                                setScalerRelativeFactor(val / baseValue);
+                                                            }
+                                                        }}
+                                                        style={styles.scalerInput}
+                                                    />
+                                                ) : (
+                                                    <Text style={styles.ingQty}>
+                                                        {displayValue.toFixed(1).replace(/\.0$/, '')}
+                                                    </Text>
+                                                )}
+                                                <Text style={{ fontSize: 10, color: '#666', marginLeft: 4 }}>{ing.unit}</Text>
+                                            </View>
+                                        </View>
+                                        {/* Ratio Bar */}
+                                        <View style={styles.ratioBarBg}>
+                                            <View style={[styles.ratioBarFill, { width: `${(displayValue / maxQty) * 100}%` }]} />
+                                        </View>
                                     </View>
-                                    {/* Ratio Bar (UI Aim 1) */}
-                                    <View style={styles.ratioBarBg}>
-                                        <View style={[styles.ratioBarFill, { width: `${(ing.quantity / maxQty) * 100}%` }]} />
-                                    </View>
-                                </View>
-                            ))}
+                                );
+                            })}
                         </View>
                     );
                 })}
@@ -308,7 +381,7 @@ export default function RecipeDetailScreen() {
                             ]}
                             onPress={() => setFocusedStepId(focusedStepId === step.id ? null : step.id)}
                         >
-                            <Card.Content>
+                            <Card.Content style={{ padding: 0 }}>
                                 <View style={styles.stepHeader}>
                                     <View style={[
                                         styles.stepNumContainer,
@@ -331,10 +404,10 @@ export default function RecipeDetailScreen() {
                                             <Chip
                                                 key={ss.id}
                                                 style={styles.sectionChip}
-                                                textStyle={{ fontSize: 11, color: '#666', lineHeight: 14 }}
+                                                textStyle={{ fontSize: 11, color: '#B8860B', lineHeight: 14, fontWeight: 'bold' }}
                                                 compact
                                             >
-                                                {ss.section?.name}
+                                                {currentVersion?.sections?.find(s => s.id === ss.sectionId)?.name}
                                             </Chip>
                                         ))}
                                     </View>
@@ -431,30 +504,32 @@ const styles = StyleSheet.create({
     },
     timelineItem: {
         flexDirection: 'row',
-        minHeight: 60,
+        minHeight: 70,
     },
     timelineLeft: {
-        width: 30,
+        width: 32,
         alignItems: 'center',
     },
     timelineDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: '#DDD',
-        marginTop: 6,
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: '#E0E0E0',
+        marginTop: 8,
         zIndex: 1,
+        borderWidth: 2,
+        borderColor: '#fff',
     },
     timelineLine: {
         flex: 1,
         width: 2,
-        backgroundColor: '#EEE',
-        marginVertical: -2,
+        backgroundColor: '#F0E68C',
+        marginVertical: -4,
     },
     timelineRight: {
         flex: 1,
-        paddingBottom: 16,
-        paddingHorizontal: 12,
+        paddingBottom: 20,
+        paddingHorizontal: 16,
         paddingTop: 4,
     },
     timelineRow: {
@@ -463,195 +538,252 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     versionNum: {
-        fontSize: 14,
-        color: '#666',
+        fontSize: 15,
+        fontWeight: '500',
+        color: '#8C7853',
     },
     versionDate: {
-        fontSize: 12,
-        color: '#999',
+        fontSize: 11,
+        color: '#A1887F',
     },
     versionNotes: {
-        color: '#777',
-        marginTop: 4,
+        color: '#6D4C41',
+        marginTop: 6,
         fontSize: 13,
+        lineHeight: 18,
     },
     comparisonBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F0F0F0',
-        borderRadius: 4,
+        backgroundColor: '#FDF7E1',
+        borderRadius: 8,
         paddingRight: 8,
-        marginTop: 4,
+        marginTop: 8,
         alignSelf: 'flex-start',
+        borderWidth: 1,
+        borderColor: '#FFECB3',
     },
     comparisonTxt: {
         fontSize: 10,
-        color: '#666',
+        color: '#B8860B',
         fontWeight: 'bold',
     },
     card: {
         margin: 16,
-        marginBottom: 8,
-        borderRadius: 12,
-    },
-    mainSectionTitle: {
-        marginLeft: 20,
-        marginTop: 12,
         marginBottom: 12,
-        fontWeight: 'bold',
-        color: '#4E342E',
-        letterSpacing: 1,
-    },
-    sectionContainer: {
-        marginHorizontal: 16,
-        marginBottom: 20,
-        padding: 16,
-        borderRadius: 12,
+        borderRadius: 16,
         backgroundColor: '#fff',
         borderWidth: 1,
         borderColor: '#F0F0F0',
-        elevation: 1,
+    },
+    mainSectionTitle: {
+        marginLeft: 20,
+        marginTop: 24,
+        marginBottom: 16,
+        fontWeight: 'bold',
+        color: '#4E342E',
+        fontSize: 18,
+        letterSpacing: 0.5,
+    },
+    sectionContainer: {
+        marginHorizontal: 16,
+        marginBottom: 24,
+        padding: 20,
+        borderRadius: 16,
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: '#F0E68C', // Light Brass
+        elevation: 2,
+        shadowColor: '#B8860B',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
     },
     row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 6,
+        marginBottom: 8,
     },
     ingName: {
-        fontSize: 15,
-        color: '#333',
+        fontSize: 16,
+        color: '#4E342E',
+        fontWeight: '500',
     },
     ingQty: {
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: 'bold',
         color: '#B8860B',
     },
     ratioBarBg: {
-        height: 4,
-        backgroundColor: '#F0F0F0',
-        borderRadius: 2,
+        height: 5,
+        backgroundColor: '#FDFCF0',
+        borderRadius: 2.5,
         overflow: 'hidden',
+        borderWidth: 0.5,
+        borderColor: '#EFEBE9',
     },
     ratioBarFill: {
         height: '100%',
-        backgroundColor: '#B8860B',
-        borderRadius: 2,
+        backgroundColor: '#DAA520', // GoldenRod
+        borderRadius: 2.5,
     },
     stepsContainer: {
         marginHorizontal: 16,
-        marginTop: 8,
+        marginTop: 4,
     },
     stepCard: {
-        marginBottom: 16,
-        borderRadius: 12,
+        marginBottom: 20,
+        borderRadius: 16,
         backgroundColor: '#fff',
         borderWidth: 1,
-        borderColor: '#EEE',
+        borderColor: '#EFEBE9',
+        padding: 4,
     },
     stepHeader: {
         flexDirection: 'row',
         alignItems: 'flex-start',
+        padding: 12,
     },
     stepNumContainer: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: '#F0F0F0',
+        width: 28,
+        height: 28,
+        borderRadius: 8,
+        backgroundColor: '#4E342E',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
-        marginTop: 2,
+        marginRight: 16,
+        marginTop: 0,
     },
     stepNum: {
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: 'bold',
-        color: '#666',
+        color: '#FDFCF0',
     },
     stepDesc: {
         flex: 1,
-        fontSize: 15,
-        lineHeight: 24,
-        color: '#333',
+        fontSize: 16,
+        lineHeight: 26,
+        color: '#3E2723',
     },
     stepSectionsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        marginTop: 12,
+        marginTop: 8,
+        padding: 12,
         paddingTop: 12,
         borderTopWidth: 1,
-        borderTopColor: '#F9F9F9',
-        gap: 6,
+        borderTopColor: '#FDFCF0',
+        gap: 8,
     },
     sectionChip: {
-        backgroundColor: '#F5F5F5',
-        borderRadius: 6,
-        margin: 0,
-        padding: 0,
+        backgroundColor: '#FDF7E1',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#FFECB3',
     },
     emptyText: {
         textAlign: 'center',
-        marginTop: 20,
-        color: '#888',
-        fontSize: 14
+        marginTop: 30,
+        color: '#A1887F',
+        fontSize: 15,
+        fontStyle: 'italic',
     },
     scalerContainer: {
+        backgroundColor: '#FDFCF0',
+        borderRadius: 20,
+        padding: 20,
+        marginHorizontal: 16,
+        marginTop: 16,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: '#B8860B',
+        elevation: 3,
+        shadowColor: '#B8860B',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+    },
+    scalerHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginHorizontal: 16,
-        marginTop: 16,
-        padding: 12,
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#EEE',
-        elevation: 1,
+        marginBottom: 16,
     },
     scalerInfo: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     scalerLabel: {
-        fontSize: 14,
-        fontWeight: 'bold',
+        fontSize: 16,
         color: '#4E342E',
-        marginLeft: 4,
+        fontWeight: 'bold',
+        marginLeft: 6,
+    },
+    scalerInput: {
+        backgroundColor: '#fff',
+        borderWidth: 2,
+        borderColor: '#B8860B',
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        fontSize: 16,
+        color: '#4E342E',
+        fontWeight: 'bold',
+        minWidth: 70,
+        textAlign: 'right',
+    },
+    standardScalerActive: {
+        backgroundColor: '#FFFDE7',
+        padding: 16,
+        borderRadius: 14,
+        borderStyle: 'dashed',
+        borderWidth: 1.5,
+        borderColor: '#B8860B',
+    },
+    scalerActiveTxt: {
+        fontSize: 13,
+        color: '#8C7853',
+        fontWeight: 'bold',
+        textAlign: 'center',
+        lineHeight: 20,
     },
     stepper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F8F8F8',
-        borderRadius: 8,
-        padding: 4,
+        justifyContent: 'center',
+        gap: 24,
     },
     stepperBtn: {
         margin: 0,
-        width: 32,
-        height: 32,
+        width: 40,
+        height: 40,
+        backgroundColor: '#fff',
     },
     servingsCount: {
         flexDirection: 'row',
         alignItems: 'baseline',
-        paddingHorizontal: 12,
+        paddingHorizontal: 4,
     },
     servingsNum: {
-        fontSize: 18,
+        fontSize: 24,
         fontWeight: 'bold',
-        color: '#B8860B',
+        color: '#4E342E',
     },
     servingsUnit: {
-        fontSize: 10,
-        color: '#888',
-        marginLeft: 2,
+        fontSize: 12,
+        color: '#8C7853',
+        marginLeft: 4,
+        fontWeight: 'bold',
     },
     nativeInput: {
         borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 4,
-        padding: 12,
+        borderColor: '#D7CCC8',
+        borderRadius: 12,
+        padding: 16,
         fontSize: 16,
         backgroundColor: '#fff',
         textAlignVertical: 'top',
+        color: '#3E2723',
     },
 });

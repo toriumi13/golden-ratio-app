@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, Platform, Alert } from 'react-native';
 import { Text, Button, IconButton, Card, useTheme, Surface, ActivityIndicator } from 'react-native-paper';
-import { getAvailablePackages, purchasePackage, restorePurchases } from '../store/subscription';
-import { PurchasesPackage } from 'react-native-purchases';
+// import { getAvailablePackages, purchasePackage, restorePurchases } from '../store/subscription';
+// import { PurchasesPackage } from 'react-native-purchases';
 
 interface PaywallProps {
     onClose: () => void;
@@ -11,44 +11,6 @@ interface PaywallProps {
 
 export default function Paywall({ onClose, reason }: PaywallProps) {
     const theme = useTheme();
-    const [packages, setPackages] = useState<PurchasesPackage[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [purchasing, setPurchasing] = useState(false);
-
-    useEffect(() => {
-        loadOfferings();
-    }, []);
-
-    const loadOfferings = async () => {
-        setLoading(true);
-        const available = await getAvailablePackages();
-        setPackages(available);
-        setLoading(false);
-    };
-
-    const handlePurchase = async (pkg: PurchasesPackage) => {
-        setPurchasing(true);
-        const success = await purchasePackage(pkg);
-        setPurchasing(false);
-        if (success) {
-            Alert.alert('ありがとうございます！', 'プレミアムプランが有効になりました。');
-            onClose();
-        } else {
-            Alert.alert('エラー', '購入処理を完了できませんでした。');
-        }
-    };
-
-    const handleRestore = async () => {
-        setPurchasing(true);
-        const success = await restorePurchases();
-        setPurchasing(false);
-        if (success) {
-            Alert.alert('復元完了', '以前の購入情報を復元しました。');
-            onClose();
-        } else {
-            Alert.alert('情報', '有効な購入情報が見つかりませんでした。');
-        }
-    };
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
@@ -88,50 +50,23 @@ export default function Paywall({ onClose, reason }: PaywallProps) {
                 />
             </View>
 
-            {loading ? (
-                <ActivityIndicator style={{ marginVertical: 20 }} />
-            ) : Platform.OS === 'web' ? (
-                <Card style={styles.buyCard} elevation={2}>
-                    <Text variant="titleMedium" style={styles.planName}>スタンダードプラン</Text>
-                    <View style={styles.priceRow}>
-                        <Text style={styles.price}>¥480</Text>
-                        <Text style={styles.period}>/ 月</Text>
-                    </View>
-                    <Button
-                        mode="contained"
-                        style={styles.buyButton}
-                        onPress={() => alert('Web版の決済（Stripe）は準備中です。アプリ版からご購入いただけます。')}
-                    >
-                        アップグレード (準備中)
-                    </Button>
-                </Card>
-            ) : (
-                packages.map((pkg) => (
-                    <Card key={pkg.identifier} style={styles.buyCard} elevation={2}>
-                        <Text variant="titleMedium" style={styles.planName}>{pkg.product.title}</Text>
-                        <View style={styles.priceRow}>
-                            <Text style={styles.price}>{pkg.product.priceString}</Text>
-                            <Text style={styles.period}> / {pkg.packageType === 'MONTHLY' ? '月' : '年'}</Text>
-                        </View>
-                        <Button
-                            mode="contained"
-                            disabled={purchasing}
-                            loading={purchasing}
-                            style={styles.buyButton}
-                            onPress={() => handlePurchase(pkg)}
-                        >
-                            アップグレード
-                        </Button>
-                        <Text style={styles.footerNote}>{pkg.product.description}</Text>
-                    </Card>
-                ))
-            )}
+            <Card style={styles.buyCard} elevation={2}>
+                <Text variant="titleMedium" style={styles.planName}>Coming Soon</Text>
+                <Text style={styles.footerNote} numberOfLines={2}>
+                    プレミアム機能は現在準備中です。{'\n'}
+                    今後のアップデートをお待ちください。
+                </Text>
+                <Button
+                    mode="contained"
+                    style={[styles.buyButton, { marginTop: 16, backgroundColor: '#8D6E63' }]}
+                    onPress={onClose}
+                >
+                    閉じる
+                </Button>
+            </Card>
 
             <View style={styles.footerActions}>
-                <Button mode="text" onPress={handleRestore} disabled={purchasing} textColor="#B8860B">
-                    購入情報を復元
-                </Button>
-                <Button mode="text" onPress={onClose} disabled={purchasing} textColor="#888">
+                <Button mode="text" onPress={onClose} textColor="#888">
                     今はフリープランを続ける
                 </Button>
             </View>

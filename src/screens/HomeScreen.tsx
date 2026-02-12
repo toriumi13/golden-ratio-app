@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, FlatList, StyleSheet, Dimensions } from 'react-native';
+import { View, FlatList, StyleSheet, Dimensions, Alert, Platform } from 'react-native';
 import { Appbar, Card, FAB, Text, useTheme, IconButton, Surface, Button, Portal, Dialog } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Recipe } from '../types';
-import { getRecipes, createRecipe } from '../store/repository';
+import { getRecipes, createRecipe, deleteRecipe } from '../store/repository';
 import { seedDemoData } from '../store/seed';
 import { logout } from '../store/auth';
 import LoginScreen from './LoginScreen';
@@ -96,8 +96,46 @@ export default function HomeScreen() {
                                 <IconButton icon="notebook-outline" iconColor={theme.colors.primary} size={24} />
                             </View>
                         </Surface>
-                        <View style={styles.versionBadge}>
-                            <Text style={styles.versionBadgeText}>Ver {item.latestVersionNumber || '1.0'}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <IconButton
+                                icon="delete-outline"
+                                iconColor="#888"
+                                size={20}
+                                style={{ margin: 0 }}
+                                onPress={() => {
+                                    const message = `「${item.name}」を削除してもよろしいですか？この操作は取り消せません。`;
+
+                                    if (Platform.OS === 'web') {
+                                        if (window.confirm(message)) {
+                                            deleteRecipe(item.id).then(() => loadRecipes());
+                                        }
+                                        return;
+                                    }
+
+                                    Alert.alert(
+                                        'レシピの削除',
+                                        message,
+                                        [
+                                            { text: 'キャンセル', style: 'cancel' },
+                                            {
+                                                text: '削除',
+                                                style: 'destructive',
+                                                onPress: async () => {
+                                                    try {
+                                                        await deleteRecipe(item.id);
+                                                        loadRecipes();
+                                                    } catch (err: any) {
+                                                        Alert.alert('エラー', '削除に失敗しました');
+                                                    }
+                                                }
+                                            },
+                                        ]
+                                    );
+                                }}
+                            />
+                            <View style={styles.versionBadge}>
+                                <Text style={styles.versionBadgeText}>Ver {item.latestVersionNumber || '1.0'}</Text>
+                            </View>
                         </View>
                     </View>
 
@@ -167,21 +205,27 @@ export default function HomeScreen() {
                         showsVerticalScrollIndicator={false}
                     />
                     {userProfile?.plan !== 'standard' && (
-                        <Card style={styles.adPlaceholder} elevation={0}>
-                            <View style={styles.adContent}>
-                                <Text style={styles.adLabel}>SPONSORED</Text>
-                                <Text style={styles.adTitle}>こだわりを制限なく記録しよう</Text>
-                                <Button
-                                    mode="text"
-                                    compact
-                                    onPress={() => {
-                                        setPaywallReason(null);
-                                        setShowPaywall(true);
-                                    }}
-                                    labelStyle={{ fontSize: 11 }}
-                                >
-                                    広告を削除する
-                                </Button>
+                        <Card style={styles.premiumPromoCard} elevation={2}>
+                            <View style={styles.premiumPromoContent}>
+                                <View style={styles.premiumPromoIconContainer}>
+                                    <IconButton icon="crown" iconColor="#B8860B" size={24} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.premiumPromoTitle}>プレミアム機能で研究を加速</Text>
+                                    <Text style={styles.premiumPromoSubtitle}>広告なし・レシピ無制限・逆算スケーラー</Text>
+                                    <Button
+                                        mode="contained"
+                                        compact
+                                        onPress={() => {
+                                            setPaywallReason(null);
+                                            setShowPaywall(true);
+                                        }}
+                                        style={styles.premiumPromoButton}
+                                        labelStyle={{ fontSize: 11, fontWeight: 'bold' }}
+                                    >
+                                        詳細を見る
+                                    </Button>
+                                </View>
                             </View>
                         </Card>
                     )}
@@ -228,12 +272,13 @@ const styles = StyleSheet.create({
     recipeCard: {
         marginBottom: 16,
         backgroundColor: '#fff',
-        borderRadius: 16,
+        borderRadius: 20,
         borderWidth: 1,
-        borderColor: '#F0F0F0',
+        borderColor: '#EFEBE9',
+        overflow: 'hidden',
     },
     cardContent: {
-        paddingTop: 12,
+        paddingTop: 16,
     },
     cardHeader: {
         flexDirection: 'row',
@@ -242,32 +287,37 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     iconContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: 12,
-        backgroundColor: '#FFF8E1',
+        width: 52,
+        height: 52,
+        borderRadius: 14,
+        backgroundColor: '#FDFCF0',
+        borderWidth: 1,
+        borderColor: '#F0E68C',
     },
     iconInner: {
         flex: 1,
-        borderRadius: 12,
+        borderRadius: 14,
         overflow: 'hidden',
         justifyContent: 'center',
         alignItems: 'center',
     },
     versionBadge: {
-        backgroundColor: '#EFEBE9',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 8,
+        backgroundColor: '#FDF7E1',
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#FFECB3',
     },
     versionBadgeText: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: 'bold',
-        color: '#5D4037',
+        color: '#B8860B',
     },
     recipeName: {
         fontWeight: 'bold',
-        color: '#333',
+        color: '#4E342E',
+        fontSize: 20,
         marginBottom: 16,
     },
     cardFooter: {
@@ -275,7 +325,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         borderTopWidth: 1,
-        borderTopColor: '#F5F5F5',
+        borderTopColor: '#FDFCF0',
         paddingTop: 12,
         marginTop: 4,
     },
@@ -290,63 +340,82 @@ const styles = StyleSheet.create({
     },
     statText: {
         fontSize: 12,
-        color: '#666',
+        color: '#8C7853',
     },
     dateText: {
-        fontSize: 12,
-        color: '#999',
+        fontSize: 11,
+        color: '#A1887F',
     },
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         padding: 40,
+        marginTop: 60,
     },
     emptyTitle: {
-        color: '#8C7853',
+        color: '#4E342E',
         fontWeight: 'bold',
-        marginTop: 16,
+        marginTop: 24,
         textAlign: 'center',
+        fontSize: 22,
     },
     emptySubtitle: {
-        color: '#999',
+        color: '#8C7853',
         textAlign: 'center',
-        marginTop: 8,
+        marginTop: 12,
         lineHeight: 22,
+        fontSize: 15,
     },
     fab: {
         position: 'absolute',
-        margin: 16,
+        margin: 20,
         right: 0,
         bottom: 0,
-        borderRadius: 16,
+        borderRadius: 18,
+        elevation: 4,
     },
     loginDialog: {
         backgroundColor: '#fff',
-        borderRadius: 24,
+        borderRadius: 28,
         overflow: 'hidden',
     },
-    adPlaceholder: {
-        backgroundColor: '#EEEEEE',
-        margin: 16,
-        padding: 8,
-        borderRadius: 12,
+    premiumPromoCard: {
+        backgroundColor: '#4E342E', // Dark Espresso base
+        margin: 4,
+        borderRadius: 20,
+        overflow: 'hidden',
         borderWidth: 1,
-        borderColor: '#E0E0E0',
-        borderStyle: 'dashed',
+        borderColor: '#B8860B',
     },
-    adContent: {
+    premiumPromoContent: {
+        flexDirection: 'row',
+        padding: 16,
         alignItems: 'center',
     },
-    adLabel: {
-        fontSize: 10,
-        color: '#999',
-        letterSpacing: 1,
-        marginBottom: 4,
+    premiumPromoIconContainer: {
+        backgroundColor: '#FDFCF0',
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16,
     },
-    adTitle: {
-        fontSize: 13,
-        color: '#666',
+    premiumPromoTitle: {
+        color: '#FDFCF0',
+        fontSize: 15,
         fontWeight: 'bold',
+    },
+    premiumPromoSubtitle: {
+        color: '#BD9A7A',
+        fontSize: 11,
+        marginTop: 2,
+        marginBottom: 8,
+    },
+    premiumPromoButton: {
+        backgroundColor: '#B8860B',
+        borderRadius: 8,
+        alignSelf: 'flex-start',
     },
 });

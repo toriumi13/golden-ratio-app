@@ -16,6 +16,7 @@ export interface Version {
   versionNumber: string;
   notes?: string;
   createdAt: string;
+  baseServings: number;
   sections?: Section[];
   steps?: Step[];              // Version-level steps in chronological order
 }

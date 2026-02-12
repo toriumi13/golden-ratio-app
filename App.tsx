@@ -13,15 +13,16 @@ const theme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: '#B8860B', // Dark Goldenrod - Premium Gold
+    primary: '#B8860B', // Metallic Gold (Rich)
     onPrimary: '#FFFFFF',
     primaryContainer: '#FFECB3',
     onPrimaryContainer: '#5D4037',
-    secondary: '#4E342E', // Deep Brown/Charcoal
+    secondary: '#4E342E', // Dark Espresso
     onSecondary: '#FFFFFF',
     surface: '#FFFFFF',
-    background: '#FAFAFA',
-    outline: '#E0E0E0',
+    background: '#FDFCF0', // Light Cream/Paper color
+    outline: '#D4AF37',   // Brass/Gold outline
+    surfaceVariant: '#F7F4E9',
   },
 };
 
