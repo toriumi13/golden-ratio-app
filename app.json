@@ -26,6 +26,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
+      "bundler": "metro",
       "favicon": "./assets/favicon.png",
       "display": "standalone",
       "description": "黄金比をメモして、あなたの料理を進化させるレシピ帳",
@@ -37,6 +38,9 @@
         "resizeMode": "contain",
         "backgroundColor": "#ffffff"
       }
-    }
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

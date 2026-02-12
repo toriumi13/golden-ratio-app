@@ -1,3 +1,5 @@
+import { useFonts } from 'expo-font';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import 'react-native-get-random-values';
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
@@ -112,6 +114,14 @@ const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
 };
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    MaterialIcons: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialIcons.ttf'),
+  });
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
