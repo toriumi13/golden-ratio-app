@@ -238,6 +238,7 @@ export default function HomeScreen() {
                 color="#fff"
                 onPress={handleAddRecipe}
                 label="新しいレシピ"
+                visible={true}
             />
 
             <Portal>
@@ -275,7 +276,6 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         borderWidth: 1,
         borderColor: '#EFEBE9',
-        overflow: 'hidden',
     },
     cardContent: {
         paddingTop: 16,
@@ -378,13 +378,12 @@ const styles = StyleSheet.create({
     loginDialog: {
         backgroundColor: '#fff',
         borderRadius: 28,
-        overflow: 'hidden',
     },
     premiumPromoCard: {
         backgroundColor: '#4E342E', // Dark Espresso base
         margin: 4,
+        marginBottom: 80, // Extra space to avoid FAB overlap
         borderRadius: 20,
-        overflow: 'hidden',
         borderWidth: 1,
         borderColor: '#B8860B',
     },

@@ -10,6 +10,7 @@ import { observeAuth } from './src/store/auth';
 import LoginScreen from './src/screens/LoginScreen';
 import { initializeSubscription, syncSubscriptionUser } from './src/store/subscription';
 import { Platform } from 'react-native';
+import PWAInstallPrompt from './src/components/PWAInstallPrompt';
 
 const theme = {
   ...DefaultTheme,
@@ -127,6 +128,7 @@ export default function App() {
       <PaperProvider theme={theme}>
         <AuthWrapper>
           <AppNavigator />
+          {Platform.OS === 'web' && <PWAInstallPrompt />}
         </AuthWrapper>
       </PaperProvider>
     </SafeAreaProvider>

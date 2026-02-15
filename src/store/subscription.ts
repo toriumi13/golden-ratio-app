@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import Purchases, { CustomerInfo, PurchasesPackage } from 'react-native-purchases';
 import PurchasesUI from 'react-native-purchases-ui';
 import { auth } from './firebase';
@@ -15,7 +16,11 @@ export const ENTITLEMENT_ID = 'goledn-raito-app standard';
  * Initializes RevenueCat and identifies the user with their Firebase UID.
  */
 export const initializeSubscription = async () => {
-    if (Platform.OS === 'web') return; // RevenueCat RN SDK doesn't support Web directly
+    // Skip in web or Expo Go (development)
+    if (Platform.OS === 'web' || Constants.appOwnership === 'expo') {
+        console.log('RevenueCat not available in this environment (web or Expo Go)');
+        return;
+    }
 
     try {
         const apiKey = Platform.select({
@@ -42,7 +47,7 @@ export const initializeSubscription = async () => {
  * Syncs RevenueCat user whenever Firebase auth state changes.
  */
 export const syncSubscriptionUser = async (uid: string | null) => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web' || Constants.appOwnership === 'expo') return;
 
     try {
         if (uid) {
@@ -59,7 +64,7 @@ export const syncSubscriptionUser = async (uid: string | null) => {
  * Checks if the user has the 'standard' entitlement.
  */
 export const checkSubscriptionStatus = async (): Promise<boolean> => {
-    if (Platform.OS === 'web') return false; // Handle web subscription separately via Stripe
+    if (Platform.OS === 'web' || Constants.appOwnership === 'expo') return false;
 
     try {
         const customerInfo = await Purchases.getCustomerInfo();
@@ -126,14 +131,23 @@ export const restorePurchases = async (): Promise<boolean> => {
  * Presents the RevenueCat native Paywall.
  */
 export const presentPaywall = async (): Promise<boolean> => {
-    if (Platform.OS === 'web') return false;
+    // Early return for web to prevent any SDK calls
+    if (Platform.OS === 'web') {
+        console.log('Paywall not available on web');
+        return false;
+    }
 
     try {
         const result = await PurchasesUI.presentPaywall();
         // Returns true if the user has the entitlement after closing/completing
         return result === PurchasesUI.PAYWALL_RESULT.PURCHASED || result === PurchasesUI.PAYWALL_RESULT.RESTORED;
-    } catch (e) {
-        console.error('Paywall error:', e);
+    } catch (e: any) {
+        // Silently handle errors on web or when SDK is not properly initialized
+        if (e?.message?.includes('document') || e?.message?.includes('browser')) {
+            console.log('RevenueCat UI not available in this environment');
+        } else {
+            console.error('Paywall error:', e);
+        }
         return false;
     }
 };

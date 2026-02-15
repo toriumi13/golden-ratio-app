@@ -1,0 +1,27 @@
+{
+    "name": "黄金比のレシピ帳",
+    "short_name": "黄金比",
+    "description": "黄金比をメモして、あなたの料理を進化させるレシピ帳",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#FAFAFA",
+    "theme_color": "#B8860B",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "/favicon.ico",
+            "sizes": "48x48",
+            "type": "image/x-icon",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": [
+        "food",
+        "lifestyle",
+        "productivity"
+    ],
+    "lang": "ja",
+    "dir": "ltr",
+    "scope": "/",
+    "prefer_related_applications": false
+}

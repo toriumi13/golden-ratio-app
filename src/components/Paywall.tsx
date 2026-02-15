@@ -44,7 +44,7 @@ export default function Paywall({ onClose, reason }: PaywallProps) {
                     description="入力した分量から最適な配合を自動計算。分量調節が劇的に楽になります。"
                 />
                 <FeatureItem
-                    icon="ads-off"
+                    icon="eye-off-outline"
                     title="広告なし"
                     description="研究を邪魔する広告を一切表示しません。"
                 />
@@ -56,13 +56,15 @@ export default function Paywall({ onClose, reason }: PaywallProps) {
                     プレミアム機能は現在準備中です。{'\n'}
                     今後のアップデートをお待ちください。
                 </Text>
-                <Button
-                    mode="contained"
-                    style={[styles.buyButton, { marginTop: 16, backgroundColor: '#8D6E63' }]}
-                    onPress={onClose}
-                >
-                    閉じる
-                </Button>
+                <View style={{ width: '100%', alignItems: 'center' }}>
+                    <Button
+                        mode="contained"
+                        style={[styles.buyButton, { marginTop: 16, backgroundColor: '#8D6E63' }]}
+                        onPress={onClose}
+                    >
+                        閉じる
+                    </Button>
+                </View>
             </Card>
 
             <View style={styles.footerActions}>
@@ -101,8 +103,9 @@ const styles = StyleSheet.create({
     },
     closeButton: {
         position: 'absolute',
-        right: -12,
-        top: -16,
+        right: 0,
+        top: 0,
+        zIndex: 10,
     },
     crownContainer: {
         width: 80,
