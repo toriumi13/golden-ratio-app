@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://golden-ratio-app-zeta.vercel.app/sitemap.xml
