@@ -235,7 +235,9 @@ export default function EditRecipeScreen() {
                                         <View style={styles.ingMainRow}>
                                             <View style={styles.ingInfo}>
                                                 <Text style={styles.ingNameText}>{ing.name}</Text>
-                                                <Text style={styles.ingQtyText}>{ing.quantity} {ing.unit}</Text>
+                                                <Text style={styles.ingQtyText}>
+                                                    {ing.unit?.includes('適量') ? '' : `${ing.quantity} `}{ing.unit}
+                                                </Text>
                                             </View>
                                             <View style={styles.ingActions}>
                                                 <IconButton icon="pencil" size={18} iconColor="#AAA" onPress={() => openIngredientDialog(section.id, ing)} />

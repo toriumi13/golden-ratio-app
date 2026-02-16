@@ -120,6 +120,7 @@ export const createRecipe = async (name: string): Promise<Recipe> => {
         recipeId: recipeId,
         versionNumber: '1.0',
         createdAt: now,
+        isPublic: false,
         baseServings: 2, // Default to 2 for new recipes
         sections: [],
         steps: []
@@ -180,6 +181,38 @@ export const getRecipeDetails = async (recipeId: string): Promise<Recipe | null>
     recipe.versions = vSnap.docs.map(vDoc => vDoc.data() as Version);
 
     return recipe;
+};
+
+/**
+ * Fetches a public recipe and its specified version.
+ * Does not check for ownership, only if isPublic is true.
+ */
+export const getPublicRecipeDetails = async (recipeId: string, versionId: string): Promise<Version | null> => {
+    const versionRef = doc(db, 'recipes', recipeId, 'versions', versionId);
+    const vSnap = await getDoc(versionRef);
+
+    if (!vSnap.exists()) return null;
+
+    const version = vSnap.data() as Version;
+
+    // Check if the recipe itself is public
+    const recipeRef = doc(db, 'recipes', recipeId);
+    const rSnap = await getDoc(recipeRef);
+    const recipeData = rSnap.data() as Recipe;
+
+    if (!recipeData?.isPublic && !version.isPublic) {
+        throw new Error("このレシピは非公開設定になっています。");
+    }
+
+    return version;
+};
+
+export const setRecipePublicStatus = async (recipeId: string, versionId: string, isPublic: boolean): Promise<void> => {
+    const recipeRef = doc(db, 'recipes', recipeId);
+    const versionRef = doc(db, 'recipes', recipeId, 'versions', versionId);
+
+    await updateDoc(recipeRef, { isPublic });
+    await updateDoc(versionRef, { isPublic });
 };
 
 export const updateRecipeName = async (recipeId: string, newName: string): Promise<void> => {

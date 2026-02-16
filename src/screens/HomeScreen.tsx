@@ -9,8 +9,9 @@ import { logout } from '../store/auth';
 import LoginScreen from './LoginScreen';
 import Paywall from '../components/Paywall';
 import { auth } from '../store/firebase';
-import { getUserProfile, UserProfile } from '../store/repository';
+import { getUserProfile, UserProfile, addSection, addIngredient, addStep, getPublicRecipeDetails } from '../store/repository';
 import { presentPaywall, presentCustomerCenter } from '../store/subscription';
+import { PRESET_RECIPES, PresetRecipe } from '../data/presets';
 
 const { width } = Dimensions.get('window');
 
@@ -21,6 +22,9 @@ export default function HomeScreen() {
     const [showPaywall, setShowPaywall] = useState(false);
     const [paywallReason, setPaywallReason] = useState<string | null>(null);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+    const [selectedPreset, setSelectedPreset] = useState<PresetRecipe | null>(null);
+    const [importData, setImportData] = useState<any>(null);
+    const [isImporting, setIsImporting] = useState(false);
     const navigation = useNavigation<any>();
     const theme = useTheme();
 
@@ -43,6 +47,62 @@ export default function HomeScreen() {
             }
         });
         return () => unsubscribe();
+    }, []);
+
+    // Handle URL parameters for import
+    useEffect(() => {
+        const handleUrlParams = async () => {
+            if (Platform.OS === 'web') {
+                const params = new URLSearchParams(window.location.search);
+
+                // 1. Data-in-URL (Legacy)
+                const dataBase64 = params.get('importData');
+                if (dataBase64) {
+                    try {
+                        const json = decodeURIComponent(escape(atob(dataBase64)));
+                        const data = JSON.parse(json);
+                        setImportData(data);
+                        // Clear the parameter
+                        const url = new URL(window.location.href);
+                        url.searchParams.delete('importData');
+                        window.history.replaceState({}, '', url.toString());
+                        return;
+                    } catch (e) {
+                        console.error('Failed to parse import data', e);
+                    }
+                }
+
+                // 2. ID-based Import (New) - Handle various parameter combinations
+                const rId = params.get('recipeId');
+                const vId = params.get('versionId');
+                const rName = params.get('recipeName');
+
+                if (rId && vId) {
+                    try {
+                        console.log(`Attempting to import recipe: ${rId}, version: ${vId}`);
+                        const publicVersion = await getPublicRecipeDetails(rId, vId);
+                        if (publicVersion) {
+                            setImportData({
+                                name: rName || "共有されたレシピ",
+                                version: publicVersion
+                            });
+                        } else {
+                            console.warn('Public version not found or inaccessible.');
+                        }
+
+                        // Clear params while preserving other potentially needed ones
+                        const url = new URL(window.location.href);
+                        ['recipeId', 'versionId', 'recipeName'].forEach(p => url.searchParams.delete(p));
+                        window.history.replaceState({}, '', url.toString());
+                    } catch (e: any) {
+                        console.error('Import error:', e);
+                        alert(`インポートできませんでした: ${e.message}`);
+                    }
+                }
+            }
+        };
+
+        handleUrlParams();
     }, []);
 
     useFocusEffect(
@@ -77,6 +137,69 @@ export default function HomeScreen() {
         await seedDemoData();
         await loadRecipes();
         setIsSeeding(false);
+    };
+
+    const handleImportPreset = async (preset: PresetRecipe) => {
+        setIsImporting(true);
+        try {
+            const recipe = await createRecipe(preset.name);
+            const recipeId = recipe.id;
+            const versionId = recipe.currentVersionId!;
+
+            for (let i = 0; i < preset.sections.length; i++) {
+                const s = preset.sections[i];
+                const sectionId = await addSection(recipeId, versionId, s.name, i);
+                for (const ing of s.ingredients) {
+                    await addIngredient(recipeId, versionId, sectionId, ing.name, ing.quantity, ing.unit);
+                }
+            }
+
+            for (let i = 0; i < preset.steps.length; i++) {
+                await addStep(recipeId, versionId, preset.steps[i], i);
+            }
+
+            setSelectedPreset(null);
+            await loadRecipes();
+            navigation.navigate('RecipeDetail', { recipeId });
+        } catch (error: any) {
+            alert(error.message);
+        } finally {
+            setIsImporting(false);
+        }
+    };
+
+    const handleImportData = async () => {
+        if (!importData) return;
+        setIsImporting(true);
+        try {
+            const recipe = await createRecipe(importData.name);
+            const recipeId = recipe.id;
+            const versionId = recipe.currentVersionId!;
+
+            const v = importData.version;
+
+            for (let i = 0; i < (v.sections || []).length; i++) {
+                const s = v.sections[i];
+                const sectionId = await addSection(recipeId, versionId, s.name, i);
+                for (const ing of (s.ingredients || [])) {
+                    await addIngredient(recipeId, versionId, sectionId, ing.name, ing.quantity, ing.unit);
+                }
+            }
+
+            for (let i = 0; i < (v.steps || []).length; i++) {
+                const step = v.steps[i];
+                await addStep(recipeId, versionId, step.description, i);
+            }
+
+            setImportData(null);
+            await loadRecipes();
+            Alert.alert('インポート完了', `「${importData.name}」をあなたの研究ノートに追加しました。`);
+            navigation.navigate('RecipeDetail', { recipeId });
+        } catch (error: any) {
+            alert(error.message);
+        } finally {
+            setIsImporting(false);
+        }
     };
 
     const renderRecipeCard = ({ item }: { item: Recipe }) => {
@@ -157,6 +280,22 @@ export default function HomeScreen() {
         );
     };
 
+    const renderPresetItem = ({ item }: { item: PresetRecipe }) => (
+        <Card
+            style={styles.presetCard}
+            onPress={() => setSelectedPreset(item)}
+            elevation={0}
+        >
+            <Card.Content style={styles.presetContent}>
+                <Text style={styles.presetCategory}>{item.category}</Text>
+                <Text style={styles.presetName} numberOfLines={2}>{item.name}</Text>
+                <View style={styles.presetFooter}>
+                    <Text style={styles.presetAction}>レシピを見る</Text>
+                </View>
+            </Card.Content>
+        </Card>
+    );
+
     return (
         <View style={styles.container}>
             <Appbar.Header elevated style={styles.appbar}>
@@ -203,6 +342,24 @@ export default function HomeScreen() {
                         renderItem={renderRecipeCard}
                         contentContainerStyle={styles.listContent}
                         showsVerticalScrollIndicator={false}
+                        ListHeaderComponent={
+                            <View style={styles.presetsContainer}>
+                                <View style={styles.sectionHeaderRow}>
+                                    <Text style={styles.sectionTitle}>定番の黄金比10選</Text>
+                                    <IconButton icon="star-outline" size={18} iconColor={theme.colors.primary} />
+                                </View>
+                                <FlatList
+                                    data={PRESET_RECIPES}
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    renderItem={renderPresetItem}
+                                    keyExtractor={(item) => item.id}
+                                    contentContainerStyle={styles.presetsList}
+                                />
+                                <View style={styles.divider} />
+                                <Text style={styles.sectionTitle}>あなたの研究ノート</Text>
+                            </View>
+                        }
                     />
                     {userProfile?.plan !== 'standard' && (
                         <Card style={styles.premiumPromoCard} elevation={2}>
@@ -247,6 +404,63 @@ export default function HomeScreen() {
                 </Dialog>
                 <Dialog visible={showPaywall} onDismiss={() => setShowPaywall(false)} style={styles.loginDialog}>
                     <Paywall onClose={() => setShowPaywall(false)} reason={paywallReason || undefined} />
+                </Dialog>
+
+                <Dialog visible={!!selectedPreset} onDismiss={() => setSelectedPreset(null)} style={styles.presetDialog}>
+                    <Dialog.Title style={styles.dialogTitle}>{selectedPreset?.name}</Dialog.Title>
+                    <Dialog.ScrollArea style={styles.dialogScroll}>
+                        <View style={{ paddingVertical: 10 }}>
+                            <Text style={styles.dialogDescription}>{selectedPreset?.description}</Text>
+                            <Text style={styles.sectionHeader}>材料の比率</Text>
+                            {selectedPreset?.sections.map((s, idx) => (
+                                <View key={idx} style={styles.dialogSection}>
+                                    <Text style={styles.dialogSectionName}>{s.name}</Text>
+                                    {s.ingredients.map((ing, iidx) => (
+                                        <Text key={iidx} style={styles.dialogIngredient}>
+                                            • {ing.name}: {ing.unit?.includes('適量') ? '' : `${ing.quantity} `}{ing.unit}
+                                        </Text>
+                                    ))}
+                                </View>
+                            ))}
+                            <Text style={styles.sectionHeader}>作り方</Text>
+                            {selectedPreset?.steps.map((step, idx) => (
+                                <Text key={idx} style={styles.dialogStep}>{idx + 1}. {step}</Text>
+                            ))}
+                        </View>
+                    </Dialog.ScrollArea>
+                    <Dialog.Actions>
+                        <Button onPress={() => setSelectedPreset(null)} textColor="#888">キャンセル</Button>
+                        <Button
+                            mode="contained"
+                            onPress={() => selectedPreset && handleImportPreset(selectedPreset)}
+                            loading={isImporting}
+                            disabled={isImporting}
+                            style={{ borderRadius: 10 }}
+                        >
+                            自分のレシピに追加
+                        </Button>
+                    </Dialog.Actions>
+                </Dialog>
+
+                <Dialog visible={!!importData} onDismiss={() => setImportData(null)} style={styles.presetDialog}>
+                    <Dialog.Title style={styles.dialogTitle}>レシピをインポート</Dialog.Title>
+                    <Dialog.Content>
+                        <Text style={styles.dialogDescription}>
+                            「{importData?.name}」をあなたの研究ノートに追加しますか？
+                        </Text>
+                    </Dialog.Content>
+                    <Dialog.Actions>
+                        <Button onPress={() => setImportData(null)} textColor="#888">キャンセル</Button>
+                        <Button
+                            mode="contained"
+                            onPress={handleImportData}
+                            loading={isImporting}
+                            disabled={isImporting}
+                            style={{ borderRadius: 10 }}
+                        >
+                            インポート
+                        </Button>
+                    </Dialog.Actions>
                 </Dialog>
             </Portal>
         </View>
@@ -378,6 +592,109 @@ const styles = StyleSheet.create({
     loginDialog: {
         backgroundColor: '#fff',
         borderRadius: 28,
+    },
+    presetDialog: {
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        maxHeight: '80%',
+    },
+    dialogTitle: {
+        fontWeight: 'bold',
+        color: '#4E342E',
+    },
+    dialogScroll: {
+        paddingHorizontal: 24,
+    },
+    dialogDescription: {
+        fontSize: 14,
+        color: '#8C7853',
+        marginBottom: 16,
+        lineHeight: 20,
+    },
+    sectionHeader: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#4E342E',
+        marginTop: 16,
+        marginBottom: 8,
+        borderLeftWidth: 3,
+        borderLeftColor: '#F0E68C',
+        paddingLeft: 8,
+    },
+    dialogSection: {
+        marginBottom: 8,
+    },
+    dialogSectionName: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#A1887F',
+        marginBottom: 4,
+    },
+    dialogIngredient: {
+        fontSize: 14,
+        color: '#4E342E',
+        marginLeft: 8,
+        marginBottom: 2,
+    },
+    dialogStep: {
+        fontSize: 14,
+        color: '#4E342E',
+        marginBottom: 6,
+        lineHeight: 20,
+    },
+    presetsContainer: {
+        marginBottom: 20,
+    },
+    sectionHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#4E342E',
+    },
+    presetsList: {
+        paddingRight: 16,
+    },
+    presetCard: {
+        width: 140,
+        height: 120,
+        marginRight: 12,
+        borderRadius: 16,
+        backgroundColor: '#FDFCF0',
+        borderWidth: 1,
+        borderColor: '#F0E68C',
+    },
+    presetContent: {
+        padding: 12,
+        flex: 1,
+    },
+    presetCategory: {
+        fontSize: 10,
+        color: '#B8860B',
+        fontWeight: 'bold',
+        marginBottom: 4,
+    },
+    presetName: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#4E342E',
+        lineHeight: 18,
+    },
+    presetFooter: {
+        marginTop: 'auto',
+    },
+    presetAction: {
+        fontSize: 11,
+        color: '#8C7853',
+        textDecorationLine: 'underline',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#EFEBE9',
+        marginVertical: 20,
     },
     premiumPromoCard: {
         backgroundColor: '#4E342E', // Dark Espresso base

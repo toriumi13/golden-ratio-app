@@ -1,11 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, ScrollView, StyleSheet, Alert, TextInput as RNTextInput } from 'react-native';
+import { View, ScrollView, StyleSheet, Alert, TextInput as RNTextInput, Platform } from 'react-native';
 import { Appbar, Text, Card, Divider, Chip, useTheme, Button, Portal, Dialog, IconButton } from 'react-native-paper';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Recipe, Version } from '../types';
-import { getRecipeDetails, createNewVersionFromExisting, getUserProfile, UserProfile } from '../store/repository';
+import { getRecipeDetails, createNewVersionFromExisting, getUserProfile, UserProfile, setRecipePublicStatus } from '../store/repository';
 import Paywall from '../components/Paywall';
 import { presentPaywall } from '../store/subscription';
+import QRCode from 'react-native-qrcode-svg';
+import * as Clipboard from 'expo-clipboard';
+import { toPng } from 'html-to-image';
 
 export default function RecipeDetailScreen() {
     const route = useRoute<any>();
@@ -30,6 +33,10 @@ export default function RecipeDetailScreen() {
     const [showPaywall, setShowPaywall] = useState(false);
     const [paywallReason, setPaywallReason] = useState<string | null>(null);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+    const [showShareDialog, setShowShareDialog] = useState(false);
+    const [shareUrl, setShareUrl] = useState('');
+    const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+    const contentRef = React.useRef<View>(null);
 
 
     const handleToggleScaler = async () => {
@@ -102,6 +109,65 @@ export default function RecipeDetailScreen() {
         }
     };
 
+    const handleShare = async () => {
+        if (!recipe || !currentVersion) return;
+
+        try {
+            // Updated to ID-based sharing: Make it public first
+            await setRecipePublicStatus(recipe.id, currentVersion.id, true);
+
+            // Use current origin for local testing, fallback to production URL
+            const origin = (Platform.OS === 'web' && window.location.origin)
+                ? window.location.origin
+                : 'https://golden-ratio-app-zeta.vercel.app';
+
+            // Sharable URL with OGP proxy
+            const url = `${origin}/api/share?recipeId=${recipe.id}&versionId=${currentVersion.id}&recipeName=${encodeURIComponent(recipe.name)}`;
+            setShareUrl(url);
+            setShowShareDialog(true);
+        } catch (error) {
+            console.error('Share failed:', error);
+            Alert.alert('エラー', '共有設定の更新に失敗しました。');
+        }
+    };
+
+    const downloadPinterestImage = async () => {
+        if (Platform.OS !== 'web') {
+            Alert.alert('Web版のみ', 'この機能はWeb版でのみ利用可能です。');
+            return;
+        }
+
+        setIsGeneratingImage(true);
+        try {
+            const node = document.getElementById('recipe-content');
+            if (!node) throw new Error('Content node not found');
+
+            const dataUrl = await toPng(node, {
+                backgroundColor: '#fff',
+                style: {
+                    padding: '40px',
+                    borderRadius: '0'
+                }
+            });
+
+            const link = document.createElement('a');
+            link.download = `${recipe?.name || 'recipe'}_infographic.png`;
+            link.href = dataUrl;
+            link.click();
+            Alert.alert('保存完了', 'Pinterest用画像をダウンロードしました。');
+        } catch (err) {
+            console.error('Failed to generate image', err);
+            Alert.alert('エラー', '画像の生成に失敗しました。');
+        } finally {
+            setIsGeneratingImage(false);
+        }
+    };
+
+    const copyToClipboard = async () => {
+        await Clipboard.setStringAsync(shareUrl);
+        Alert.alert('コピー完了', '共有用URLをクリップボードにコピーしました');
+    };
+
     if (loading) {
         return (
             <View style={styles.center}>
@@ -146,6 +212,10 @@ export default function RecipeDetailScreen() {
                         })}
                     />
                 )}
+                <Appbar.Action
+                    icon="share-variant"
+                    onPress={handleShare}
+                />
                 <Appbar.Action
                     icon="pencil"
                     onPress={() => navigation.navigate('EditRecipe', { recipeId: recipe.id, versionId: currentVersion?.id })}
@@ -249,12 +319,72 @@ export default function RecipeDetailScreen() {
                                 <Text style={{ color: '#8C7853', fontWeight: 'bold', fontSize: 12 }}>メモ / 改善点</Text>
                             </View>
                             <Text variant="bodyMedium" style={{ color: '#5D4037', lineHeight: 22 }}>
-                                {currentVersion.notes}
+                                {currentVersion?.notes}
                             </Text>
                         </Card.Content>
                     </Card>
                 )}
 
+                {/* Main Content for Image Capture (Off-screen) */}
+                <View style={{ position: 'absolute', left: -9999, top: 0, width: 600 }}>
+                    <View id="recipe-content">
+                        <Card style={styles.captureCard}>
+                            <Card.Content>
+                                <View style={styles.captureHeader}>
+                                    <Text style={styles.captureTitle}>{recipe.name}</Text>
+                                    <Text style={styles.captureVersion}>
+                                        Ver {currentVersion?.versionNumber} {currentVersion?.notes ? `(${currentVersion.notes})` : ''}
+                                    </Text>
+                                </View>
+
+                                <View style={styles.captureStats}>
+                                    <Text style={styles.captureStatText}>{currentVersion?.baseServings}人前</Text>
+                                    <Text style={styles.captureStatText}>{new Date(currentVersion?.createdAt || '').toLocaleDateString()}</Text>
+                                </View>
+                            </Card.Content>
+                        </Card>
+
+                        {currentVersion?.sections?.map((section) => (
+                            <Card key={section.id} style={styles.captureSectionCard}>
+                                <Card.Title
+                                    title={section.name}
+                                    titleStyle={styles.captureSectionTitle}
+                                />
+                                <Card.Content>
+                                    {section.ingredients?.map((ing) => (
+                                        <View key={ing.id} style={styles.captureIngRow}>
+                                            <Text style={styles.captureIngName}>{ing.name}</Text>
+                                            <Text style={styles.captureIngQty}>
+                                                {ing.unit?.includes('適量') ? '' : ing.quantity}
+                                                {ing.unit}
+                                            </Text>
+                                        </View>
+                                    ))}
+                                </Card.Content>
+                            </Card>
+                        ))}
+
+                        <Card style={styles.captureSectionCard}>
+                            <Card.Title title="手順" titleStyle={styles.captureSectionTitle} />
+                            <Card.Content>
+                                {currentVersion?.steps?.map((step, idx) => (
+                                    <View key={step.id} style={styles.captureStepRow}>
+                                        <View style={styles.captureStepNum}>
+                                            <Text style={styles.captureStepNumText}>{idx + 1}</Text>
+                                        </View>
+                                        <Text style={styles.captureStepText}>
+                                            {step.description}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </Card.Content>
+                        </Card>
+
+                        <View style={styles.captureFooter}>
+                            <Text style={styles.captureFooterText}>Generated by Golden Ratio Recipe App</Text>
+                        </View>
+                    </View>
+                </View>
                 {/* Scaler / Servings Control */}
                 <View style={styles.scalerContainer}>
                     <View style={styles.scalerHeader}>
@@ -330,23 +460,25 @@ export default function RecipeDetailScreen() {
                                         <View style={styles.row}>
                                             <Text style={styles.ingName}>{ing.name}</Text>
                                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                                {isStandardScaler ? (
-                                                    <RNTextInput
-                                                        keyboardType="numeric"
-                                                        defaultValue={displayValue.toFixed(1).replace(/\.0$/, '')}
-                                                        onChangeText={(text) => {
-                                                            const val = parseFloat(text);
-                                                            if (!isNaN(val) && val > 0) {
-                                                                setScalerBaseIngredientId(ing.id);
-                                                                setScalerRelativeFactor(val / baseValue);
-                                                            }
-                                                        }}
-                                                        style={styles.scalerInput}
-                                                    />
-                                                ) : (
-                                                    <Text style={styles.ingQty}>
-                                                        {displayValue.toFixed(1).replace(/\.0$/, '')}
-                                                    </Text>
+                                                {!ing.unit?.includes('適量') && (
+                                                    isStandardScaler ? (
+                                                        <RNTextInput
+                                                            keyboardType="numeric"
+                                                            defaultValue={displayValue.toFixed(1).replace(/\.0$/, '')}
+                                                            onChangeText={(text) => {
+                                                                const val = parseFloat(text);
+                                                                if (!isNaN(val) && val > 0) {
+                                                                    setScalerBaseIngredientId(ing.id);
+                                                                    setScalerRelativeFactor(val / baseValue);
+                                                                }
+                                                            }}
+                                                            style={styles.scalerInput}
+                                                        />
+                                                    ) : (
+                                                        <Text style={styles.ingQty}>
+                                                            {displayValue.toFixed(1).replace(/\.0$/, '')}
+                                                        </Text>
+                                                    )
                                                 )}
                                                 <Text style={{ fontSize: 10, color: '#666', marginLeft: 4 }}>{ing.unit}</Text>
                                             </View>
@@ -470,6 +602,44 @@ export default function RecipeDetailScreen() {
 
                 <Dialog visible={showPaywall} onDismiss={() => setShowPaywall(false)} style={{ backgroundColor: '#fff', borderRadius: 24, overflow: 'hidden' }}>
                     <Paywall onClose={() => setShowPaywall(false)} reason={paywallReason || undefined} />
+                </Dialog>
+
+                <Dialog visible={showShareDialog} onDismiss={() => setShowShareDialog(false)} style={styles.shareDialog}>
+                    <Dialog.Title style={styles.dialogTitle}>レシピを共有</Dialog.Title>
+                    <Dialog.Content style={styles.shareContent}>
+                        <Text style={styles.shareSubtitle}>相手がQRコードを読み取ると、このレシピをインポートできます。</Text>
+                        <View style={styles.qrContainer}>
+                            {shareUrl ? (
+                                <QRCode
+                                    value={shareUrl}
+                                    size={200}
+                                    color="#4E342E"
+                                    backgroundColor="white"
+                                />
+                            ) : null}
+                        </View>
+                        <Button
+                            mode="outlined"
+                            onPress={copyToClipboard}
+                            style={styles.copyBtn}
+                            icon="content-copy"
+                        >
+                            URLをコピー
+                        </Button>
+                    </Dialog.Content>
+                    <Dialog.Actions style={styles.dialogActions}>
+                        <Button
+                            mode="contained"
+                            onPress={downloadPinterestImage}
+                            loading={isGeneratingImage}
+                            disabled={isGeneratingImage}
+                            style={styles.pinterestBtn}
+                            icon="image"
+                        >
+                            Pinterest用画像を保存
+                        </Button>
+                        <Button onPress={() => setShowShareDialog(false)}>閉じる</Button>
+                    </Dialog.Actions>
                 </Dialog>
             </Portal>
         </View>
@@ -786,4 +956,138 @@ const styles = StyleSheet.create({
         textAlignVertical: 'top',
         color: '#3E2723',
     },
+    shareDialog: {
+        backgroundColor: '#fff',
+        borderRadius: 24,
+    },
+    dialogTitle: {
+        fontWeight: 'bold',
+        color: '#4E342E',
+    },
+    shareContent: {
+        alignItems: 'center',
+        paddingTop: 0,
+    },
+    shareSubtitle: {
+        fontSize: 14,
+        color: '#8C7853',
+        textAlign: 'center',
+        marginBottom: 20,
+    },
+    qrContainer: {
+        padding: 16,
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#EFEBE9',
+        elevation: 2,
+        marginBottom: 20,
+    },
+    copyBtn: {
+        width: '100%',
+        borderRadius: 12,
+        borderColor: '#B8860B',
+    },
+    dialogActions: {
+        flexDirection: 'column',
+        gap: 8,
+        paddingHorizontal: 24,
+        paddingBottom: 16,
+    },
+    pinterestBtn: {
+        width: '100%',
+        borderRadius: 12,
+    },
+    // Capture Specific Styles
+    captureCard: {
+        padding: 40,
+        backgroundColor: '#fff',
+        borderRadius: 0,
+        elevation: 0,
+    },
+    captureHeader: {
+        marginBottom: 24,
+    },
+    captureTitle: {
+        fontSize: 32,
+        fontWeight: '900',
+        color: '#212121',
+        marginBottom: 8,
+    },
+    captureVersion: {
+        fontSize: 18,
+        color: '#fbc02d',
+        fontWeight: 'bold',
+    },
+    captureStats: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        borderTopWidth: 1,
+        borderBottomWidth: 1,
+        borderColor: '#eee',
+        paddingVertical: 12,
+    },
+    captureStatText: {
+        fontSize: 16,
+        color: '#757575',
+    },
+    captureSectionCard: {
+        marginHorizontal: 40,
+        marginBottom: 20,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#fbc02d',
+    },
+    captureSectionTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#4E342E',
+    },
+    captureIngRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: 8,
+        borderBottomWidth: 0.5,
+        borderBottomColor: '#eee',
+    },
+    captureIngName: {
+        fontSize: 16,
+    },
+    captureIngQty: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#B8860B',
+    },
+    captureStepRow: {
+        flexDirection: 'row',
+        marginBottom: 16,
+    },
+    captureStepNum: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: '#fbc02d',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    captureStepNumText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    captureStepText: {
+        flex: 1,
+        fontSize: 16,
+        lineHeight: 24,
+    },
+    captureFooter: {
+        paddingTop: 40,
+        paddingBottom: 20,
+        alignItems: 'center',
+    },
+    captureFooterText: {
+        fontSize: 14,
+        color: '#bdbdbd',
+    }
 });

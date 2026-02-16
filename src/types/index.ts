@@ -3,6 +3,7 @@ export interface Recipe {
   userId: string;
   name: string;
   createdAt: string;
+  isPublic?: boolean;
   currentVersionId?: string;
   latestVersionNumber?: string;
   latestVersionDate?: string;
@@ -12,6 +13,7 @@ export interface Recipe {
 export interface Version {
   id: string;
   recipeId: string;
+  isPublic?: boolean;
   parentVersionId?: string;
   versionNumber: string;
   notes?: string;
