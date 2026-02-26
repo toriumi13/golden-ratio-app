@@ -1,6 +1,12 @@
 {
     "buildCommand": "npm run build:web",
     "outputDirectory": "dist",
+    "rewrites": [
+        {
+            "source": "/sitemap.xml",
+            "destination": "/api/sitemap"
+        }
+    ],
     "headers": [
         {
             "source": "/service-worker.js",

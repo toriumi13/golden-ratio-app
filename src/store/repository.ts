@@ -215,6 +215,23 @@ export const setRecipePublicStatus = async (recipeId: string, versionId: string,
     await updateDoc(versionRef, { isPublic });
 };
 
+/**
+ * Fetches all recipes that are marked as public.
+ * Used for sitemap generation and public showcase.
+ */
+export const getAllPublicRecipes = async (): Promise<Recipe[]> => {
+    const recipesCol = collection(db, 'recipes');
+    const q = query(
+        recipesCol,
+        where("isPublic", "==", true)
+    );
+    const snapshot = await getDocs(q);
+    // Sort in memory to avoid needing a composite index for now
+    return snapshot.docs
+        .map(doc => doc.data() as Recipe)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+};
+
 export const updateRecipeName = async (recipeId: string, newName: string): Promise<void> => {
     const recipeRef = doc(db, 'recipes', recipeId);
     await updateDoc(recipeRef, { name: newName });

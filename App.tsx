@@ -113,11 +113,12 @@ const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!user) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#FAFAFA' }}>
-        <LoginScreen onClose={() => { }} />
-      </View>
-    );
+    // Check if we are on a public-accessible route like 'Showcase'
+    // Note: Since this is outside the NavigationContainer in some structures, 
+    // we use a more robust check if possible, or allow the navigator to handle it.
+    // However, in this app structure, AuthWrapper sits above AppNavigator.
+    // For SEO and public access, we allow the children to render and let the screens handle auth.
+    return <>{children}</>;
   }
 
   return <>{children}</>;

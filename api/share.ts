@@ -1,4 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { db } from '../src/store/firebase';
 
 // Use standard Node.js runtime for maximum stability
 export const config = {
@@ -24,14 +25,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return;
         }
 
+        // Fetch actual recipe data for SEO
+        let ingredientsText = "";
+        let versionData = null;
+        if (versionId) {
+            try {
+                const { doc, getDoc } = require('firebase/firestore');
+                const vRef = doc(db, 'recipes', recipeId, 'versions', versionId);
+                const vSnap = await getDoc(vRef);
+                if (vSnap.exists()) {
+                    versionData = vSnap.data();
+                    ingredientsText = versionData.sections?.map((s: any) =>
+                        s.name + ": " + s.ingredients?.map((i: any) => `${i.name}${i.quantity}${i.unit}`).join(', ')
+                    ).join(' | ');
+                }
+            } catch (e) {
+                console.error("Error fetching version for SEO", e);
+            }
+        }
+
         const name = recipeName || '黄金比レシピ';
+        const description = ingredientsText
+            ? `材料: ${ingredientsText.substring(0, 150)}... 黄金比をチェックして料理をアップグレードしましょう。`
+            : "このレシピの調味比率をチェックして、あなたの料理をアップグレードしましょう。";
+
         const origin = `${protocol}://${host}`;
         const ogImageUrl = `${origin}/api/og-gen?recipeName=${encodeURIComponent(name)}`;
         const shareUrl = versionId
             ? `${origin}/api/share?recipeId=${recipeId}&versionId=${versionId}&recipeName=${encodeURIComponent(name)}`
             : `${origin}/api/share?recipeId=${recipeId}&recipeName=${encodeURIComponent(name)}`;
 
-        console.log(`[DEBUG-SHARE] Generating HTML with ogImageUrl: ${ogImageUrl}`);
+        console.log(`[DEBUG-SHARE] Generating HTML with SEO content`);
 
         const html = `<!DOCTYPE html>
 <html lang="ja">
@@ -40,7 +64,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     <title>${name} | 黄金比レシピ</title>
     <!-- Standard OGP -->
     <meta property="og:title" content="${name} の黄金比を確認">
-    <meta property="og:description" content="このレシピの調味比率をチェックして、あなたの料理をアップグレードしましょう。">
+    <meta name="description" content="${description}">
+    <meta property="og:description" content="${description}">
     <meta property="og:image" content="${ogImageUrl}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -51,10 +76,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     <!-- Twitter Specific -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:site" content="@kenken__13">
-    <meta name="twitter:creator" content="@kenken__13">
     <meta name="twitter:title" content="${name} の黄金比">
-    <meta name="twitter:description" content="このレシピの調味比率をチェックして、あなたの料理をアップグレードしましょう。">
+    <meta name="twitter:description" content="${description}">
     <meta name="twitter:image" content="${ogImageUrl}">
     <meta name="twitter:url" content="${shareUrl}">
     <script>
@@ -68,8 +91,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         window.location.href = t;
     </script>
 </head>
-<body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #FDFCF0;">
-    <p style="color: #6d4c41; font-weight: bold;">レシピを読み込んでいます...</p>
+<body style="font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background-color: #F9F7F2; padding: 20px; color: #3E2723;">
+    <h1 style="color: #C5A059;">${name}</h1>
+    <div style="max-width: 600px; line-height: 1.6;">
+        <p>${description}</p>
+        ${versionData ? `
+        <div style="background: white; padding: 20px; border-radius: 12px; border: 1px solid #F2EFE9;">
+            <h2 style="font-size: 1.2rem; margin-top: 0;">材料リスト</h2>
+            <ul>
+                ${versionData.sections?.map((s: any) => `
+                    <li><strong>${s.name}</strong>
+                        <ul>
+                            ${s.ingredients?.map((i: any) => `<li>${i.name}: ${i.quantity}${i.unit}</li>`).join('')}
+                        </ul>
+                    </li>
+                `).join('')}
+            </ul>
+        </div>
+        ` : ''}
+    </div>
+    <p style="margin-top: 30px; font-size: 0.9rem; color: #8D6E63;">アプリを読み込んでいます...</p>
 </body>
 </html>`;
 

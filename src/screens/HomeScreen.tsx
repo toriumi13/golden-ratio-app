@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, FlatList, StyleSheet, Dimensions, Alert, Platform } from 'react-native';
+import { View, FlatList, StyleSheet, Dimensions, Alert, Platform, TouchableOpacity } from 'react-native';
 import { Appbar, Card, FAB, Text, useTheme, IconButton, Surface, Button, Portal, Dialog } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Recipe } from '../types';
@@ -12,6 +12,7 @@ import { auth } from '../store/firebase';
 import { getUserProfile, UserProfile, addSection, addIngredient, addStep, getPublicRecipeDetails } from '../store/repository';
 import { presentPaywall, presentCustomerCenter } from '../store/subscription';
 import { PRESET_RECIPES, PresetRecipe } from '../data/presets';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 const { width } = Dimensions.get('window');
 
@@ -344,6 +345,27 @@ export default function HomeScreen() {
                         showsVerticalScrollIndicator={false}
                         ListHeaderComponent={
                             <View style={styles.presetsContainer}>
+                                <TouchableOpacity
+                                    onPress={() => navigation.navigate('Showcase')}
+                                    activeOpacity={0.8}
+                                >
+                                    <Surface style={styles.showcaseBanner} elevation={2}>
+                                        <View style={styles.showcaseContent}>
+                                            <View style={styles.showcaseTextContainer}>
+                                                <View style={styles.showcaseBadge}>
+                                                    <MaterialCommunityIcons name="lightning-bolt" size={10} color="#C5A059" />
+                                                    <Text style={styles.showcaseBadgeText}>Research Highlights</Text>
+                                                </View>
+                                                <Text style={styles.showcaseTitle}>黄金比ショーケース</Text>
+                                                <Text style={styles.showcaseSubtitle}>世界中の「究極の比率」をのぞいてみよう</Text>
+                                            </View>
+                                            <View style={styles.showcaseIconWrap}>
+                                                <MaterialCommunityIcons name="earth" size={28} color="#C5A059" />
+                                            </View>
+                                        </View>
+                                    </Surface>
+                                </TouchableOpacity>
+
                                 <View style={styles.sectionHeaderRow}>
                                     <Text style={styles.sectionTitle}>定番の黄金比10選</Text>
                                     <IconButton icon="star-outline" size={18} iconColor={theme.colors.primary} />
@@ -738,5 +760,58 @@ const styles = StyleSheet.create({
         backgroundColor: '#B8860B',
         borderRadius: 8,
         alignSelf: 'flex-start',
+    },
+    showcaseBanner: {
+        backgroundColor: '#C5A059',
+        borderRadius: 20,
+        marginBottom: 24,
+        overflow: 'hidden',
+    },
+    showcaseContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        paddingVertical: 20,
+    },
+    showcaseTextContainer: {
+        flex: 1,
+    },
+    showcaseTitle: {
+        color: '#FFF',
+        fontSize: 18,
+        fontWeight: 'bold',
+        letterSpacing: 0.5,
+    },
+    showcaseSubtitle: {
+        color: 'rgba(255, 255, 255, 0.8)',
+        fontSize: 12,
+        marginTop: 4,
+    },
+    showcaseIconWrap: {
+        backgroundColor: 'rgba(255, 255, 255, 0.4)',
+        width: 52,
+        height: 52,
+        borderRadius: 18,
+        marginLeft: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    showcaseBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFF',
+        alignSelf: 'flex-start',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 12,
+        marginBottom: 8,
+    },
+    showcaseBadgeText: {
+        color: '#C5A059',
+        fontSize: 9,
+        fontWeight: '900',
+        marginLeft: 4,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
 });

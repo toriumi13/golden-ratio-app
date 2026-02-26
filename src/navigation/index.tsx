@@ -6,6 +6,8 @@ import RecipeDetailScreen from '../screens/RecipeDetailScreen';
 import EditRecipeScreen from '../screens/EditRecipeScreen';
 import DeltaScreen from '../screens/DeltaScreen';
 
+import ShowcaseScreen from '../screens/ShowcaseScreen';
+
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
@@ -13,6 +15,7 @@ export default function AppNavigator() {
         <NavigationContainer>
             <Stack.Navigator initialRouteName="Home" screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="Home" component={HomeScreen} />
+                <Stack.Screen name="Showcase" component={ShowcaseScreen} />
                 <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
                 <Stack.Screen name="EditRecipe" component={EditRecipeScreen} />
                 <Stack.Screen name="Delta" component={DeltaScreen} />
