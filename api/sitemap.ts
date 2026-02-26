@@ -36,7 +36,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // Add each public recipe
         for (const recipe of publicRecipes) {
-            const recipeUrl = `${origin}/api/share?recipeId=${recipe.id}&recipeName=${encodeURIComponent(recipe.name)}`;
+            // IMPORTANT: XML must escape '&' as '&amp;' in URLs
+            // Also ensure recipeName is double-encoded or at least XML-safe
+            const safeName = encodeURIComponent(recipe.name);
+            const recipeUrl = `${origin}/api/share?recipeId=${recipe.id}&amp;recipeName=${safeName}`;
+
             xml += '  <url>\n';
             xml += `    <loc>${recipeUrl}</loc>\n`;
             xml += `    <lastmod>${new Date(recipe.latestVersionDate || recipe.createdAt).toISOString().split('T')[0]}</lastmod>\n`;
@@ -47,7 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         xml += '</urlset>';
 
-        res.setHeader('Content-Type', 'text/xml');
+        res.setHeader('Content-Type', 'application/xml');
         res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
         res.status(200).send(xml);
     } catch (e: any) {
