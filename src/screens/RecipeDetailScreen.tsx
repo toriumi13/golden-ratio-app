@@ -9,6 +9,7 @@ import { presentPaywall } from '../store/subscription';
 import QRCode from 'react-native-qrcode-svg';
 import * as Clipboard from 'expo-clipboard';
 import { toPng } from 'html-to-image';
+import { getVirtualWeight, getRatioWidth } from '../utils/ratio';
 
 export default function RecipeDetailScreen() {
     const route = useRoute<any>();
@@ -389,15 +390,15 @@ export default function RecipeDetailScreen() {
                 <View style={styles.scalerContainer}>
                     <View style={styles.scalerHeader}>
                         <View style={styles.scalerInfo}>
-                            <IconButton icon="account-group" size={20} iconColor={theme.colors.secondary} style={{ margin: 0 }} />
+                            <IconButton icon="account-group" size={20} iconColor="#F3E5AB" style={{ margin: 0 }} />
                             <Text style={styles.scalerLabel}>分量を調整</Text>
                         </View>
 
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Text variant="labelSmall" style={{ color: isStandardScaler ? '#B8860B' : '#888', fontWeight: 'bold' }}>黄金比スケーラー</Text>
+                            <Text variant="labelSmall" style={{ color: isStandardScaler ? '#C5A059' : '#BD9A7A', fontWeight: 'bold' }}>黄金比スケーラー</Text>
                             <IconButton
                                 icon={isStandardScaler ? "calculator" : "calculator-variant-outline"}
-                                iconColor={isStandardScaler ? "#B8860B" : "#888"}
+                                iconColor={isStandardScaler ? "#C5A059" : "#BD9A7A"}
                                 size={20}
                                 onPress={handleToggleScaler}
                             />
@@ -409,7 +410,7 @@ export default function RecipeDetailScreen() {
                             <IconButton
                                 icon="minus"
                                 size={18}
-                                mode="outlined"
+                                iconColor="#FFF"
                                 disabled={servings <= 1}
                                 onPress={handleServingsChange(-1)}
                                 style={styles.stepperBtn}
@@ -421,7 +422,7 @@ export default function RecipeDetailScreen() {
                             <IconButton
                                 icon="plus"
                                 size={18}
-                                mode="outlined"
+                                iconColor="#FFF"
                                 onPress={handleServingsChange(1)}
                                 style={styles.stepperBtn}
                             />
@@ -440,9 +441,10 @@ export default function RecipeDetailScreen() {
 
 
                 {currentVersion?.sections?.map((section) => {
-                    const maxQty = Math.max(...(section.ingredients?.map(i => {
+                    const maxWeight = Math.max(...(section.ingredients?.map(i => {
                         const baseVal = i.quantity * servings;
-                        return isStandardScaler ? baseVal * scalerRelativeFactor : baseVal;
+                        const actualQty = isStandardScaler ? baseVal * scalerRelativeFactor : baseVal;
+                        return getVirtualWeight(actualQty, i.unit);
                     }) || [1]));
 
                     return (
@@ -485,7 +487,7 @@ export default function RecipeDetailScreen() {
                                         </View>
                                         {/* Ratio Bar */}
                                         <View style={styles.ratioBarBg}>
-                                            <View style={[styles.ratioBarFill, { width: `${(displayValue / maxQty) * 100}%` }]} />
+                                            <View style={[styles.ratioBarFill, { width: getRatioWidth(displayValue, ing.unit, maxWeight) as any }]} />
                                         </View>
                                     </View>
                                 );
@@ -536,7 +538,7 @@ export default function RecipeDetailScreen() {
                                             <Chip
                                                 key={ss.id}
                                                 style={styles.sectionChip}
-                                                textStyle={{ fontSize: 11, color: '#B8860B', lineHeight: 14, fontWeight: 'bold' }}
+                                                textStyle={{ fontSize: 11, color: '#4A3728', lineHeight: 14, fontWeight: 'bold' }}
                                                 compact
                                             >
                                                 {currentVersion?.sections?.find(s => s.id === ss.sectionId)?.name}
@@ -647,447 +649,89 @@ export default function RecipeDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    versionBar: {
-        backgroundColor: '#FAFAFA',
-        borderBottomWidth: 1,
-        borderBottomColor: '#EEE',
-        paddingVertical: 4,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    versionHeaderMini: {
-        paddingHorizontal: 8,
-        borderRightWidth: 1,
-        borderRightColor: '#EEE',
-    },
-    scrollContent: {
-        paddingBottom: 40
-    },
-    timelineItem: {
-        flexDirection: 'row',
-        minHeight: 70,
-    },
-    timelineLeft: {
-        width: 32,
-        alignItems: 'center',
-    },
-    timelineDot: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        backgroundColor: '#E0E0E0',
-        marginTop: 8,
-        zIndex: 1,
-        borderWidth: 2,
-        borderColor: '#fff',
-    },
-    timelineLine: {
-        flex: 1,
-        width: 2,
-        backgroundColor: '#F0E68C',
-        marginVertical: -4,
-    },
-    timelineRight: {
-        flex: 1,
-        paddingBottom: 20,
-        paddingHorizontal: 16,
-        paddingTop: 4,
-    },
-    timelineRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    versionNum: {
-        fontSize: 15,
-        fontWeight: '500',
-        color: '#8C7853',
-    },
-    versionDate: {
-        fontSize: 11,
-        color: '#A1887F',
-    },
-    versionNotes: {
-        color: '#6D4C41',
-        marginTop: 6,
-        fontSize: 13,
-        lineHeight: 18,
-    },
-    comparisonBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FDF7E1',
-        borderRadius: 8,
-        paddingRight: 8,
-        marginTop: 8,
-        alignSelf: 'flex-start',
-        borderWidth: 1,
-        borderColor: '#FFECB3',
-    },
-    comparisonTxt: {
-        fontSize: 10,
-        color: '#B8860B',
-        fontWeight: 'bold',
-    },
-    card: {
-        margin: 16,
-        marginBottom: 12,
-        borderRadius: 16,
-        backgroundColor: '#fff',
-        borderWidth: 1,
-        borderColor: '#F0F0F0',
-    },
-    mainSectionTitle: {
-        marginLeft: 20,
-        marginTop: 24,
-        marginBottom: 16,
-        fontWeight: 'bold',
-        color: '#4E342E',
-        fontSize: 18,
-        letterSpacing: 0.5,
-    },
-    sectionContainer: {
-        marginHorizontal: 16,
-        marginBottom: 24,
-        padding: 20,
-        borderRadius: 16,
-        backgroundColor: '#fff',
-        borderWidth: 1,
-        borderColor: '#F0E68C', // Light Brass
-        elevation: 2,
-        shadowColor: '#B8860B',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-    },
-    row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    ingName: {
-        fontSize: 16,
-        color: '#4E342E',
-        fontWeight: '500',
-    },
-    ingQty: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#B8860B',
-    },
-    ratioBarBg: {
-        height: 5,
-        backgroundColor: '#FDFCF0',
-        borderRadius: 2.5,
-        overflow: 'hidden',
-        borderWidth: 0.5,
-        borderColor: '#EFEBE9',
-    },
-    ratioBarFill: {
-        height: '100%',
-        backgroundColor: '#DAA520', // GoldenRod
-        borderRadius: 2.5,
-    },
-    stepsContainer: {
-        marginHorizontal: 16,
-        marginTop: 4,
-    },
-    stepCard: {
-        marginBottom: 20,
-        borderRadius: 16,
-        backgroundColor: '#fff',
-        borderWidth: 1,
-        borderColor: '#EFEBE9',
-        padding: 4,
-    },
-    stepHeader: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        padding: 12,
-    },
-    stepNumContainer: {
-        width: 28,
-        height: 28,
-        borderRadius: 8,
-        backgroundColor: '#4E342E',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16,
-        marginTop: 0,
-    },
-    stepNum: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#FDFCF0',
-    },
-    stepDesc: {
-        flex: 1,
-        fontSize: 16,
-        lineHeight: 26,
-        color: '#3E2723',
-    },
-    stepSectionsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        marginTop: 8,
-        padding: 12,
-        paddingTop: 12,
-        borderTopWidth: 1,
-        borderTopColor: '#FDFCF0',
-        gap: 8,
-    },
-    sectionChip: {
-        backgroundColor: '#FDF7E1',
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#FFECB3',
-    },
-    emptyText: {
-        textAlign: 'center',
-        marginTop: 30,
-        color: '#A1887F',
-        fontSize: 15,
-        fontStyle: 'italic',
-    },
-    scalerContainer: {
-        backgroundColor: '#FDFCF0',
-        borderRadius: 20,
-        padding: 20,
-        marginHorizontal: 16,
-        marginTop: 16,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: '#B8860B',
-        elevation: 3,
-        shadowColor: '#B8860B',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-    },
-    scalerHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    scalerInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    scalerLabel: {
-        fontSize: 16,
-        color: '#4E342E',
-        fontWeight: 'bold',
-        marginLeft: 6,
-    },
-    scalerInput: {
-        backgroundColor: '#fff',
-        borderWidth: 2,
-        borderColor: '#B8860B',
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        fontSize: 16,
-        color: '#4E342E',
-        fontWeight: 'bold',
-        minWidth: 70,
-        textAlign: 'right',
-    },
-    standardScalerActive: {
-        backgroundColor: '#FFFDE7',
-        padding: 16,
-        borderRadius: 14,
-        borderStyle: 'dashed',
-        borderWidth: 1.5,
-        borderColor: '#B8860B',
-    },
-    scalerActiveTxt: {
-        fontSize: 13,
-        color: '#8C7853',
-        fontWeight: 'bold',
-        textAlign: 'center',
-        lineHeight: 20,
-    },
-    stepper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 24,
-    },
-    stepperBtn: {
-        margin: 0,
-        width: 40,
-        height: 40,
-        backgroundColor: '#fff',
-    },
-    servingsCount: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        paddingHorizontal: 4,
-    },
-    servingsNum: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#4E342E',
-    },
-    servingsUnit: {
-        fontSize: 12,
-        color: '#8C7853',
-        marginLeft: 4,
-        fontWeight: 'bold',
-    },
-    nativeInput: {
-        borderWidth: 1,
-        borderColor: '#D7CCC8',
-        borderRadius: 12,
-        padding: 16,
-        fontSize: 16,
-        backgroundColor: '#fff',
-        textAlignVertical: 'top',
-        color: '#3E2723',
-    },
-    shareDialog: {
-        backgroundColor: '#fff',
-        borderRadius: 24,
-    },
-    dialogTitle: {
-        fontWeight: 'bold',
-        color: '#4E342E',
-    },
-    shareContent: {
-        alignItems: 'center',
-        paddingTop: 0,
-    },
-    shareSubtitle: {
-        fontSize: 14,
-        color: '#8C7853',
-        textAlign: 'center',
-        marginBottom: 20,
-    },
-    qrContainer: {
-        padding: 16,
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: '#EFEBE9',
-        elevation: 2,
-        marginBottom: 20,
-    },
-    copyBtn: {
-        width: '100%',
-        borderRadius: 12,
-        borderColor: '#B8860B',
-    },
-    dialogActions: {
-        flexDirection: 'column',
-        gap: 8,
-        paddingHorizontal: 24,
-        paddingBottom: 16,
-    },
-    pinterestBtn: {
-        width: '100%',
-        borderRadius: 12,
-    },
-    // Capture Specific Styles
-    captureCard: {
-        padding: 40,
-        backgroundColor: '#fff',
-        borderRadius: 0,
-        elevation: 0,
-    },
-    captureHeader: {
-        marginBottom: 24,
-    },
-    captureTitle: {
-        fontSize: 32,
-        fontWeight: '900',
-        color: '#212121',
-        marginBottom: 8,
-    },
-    captureVersion: {
-        fontSize: 18,
-        color: '#fbc02d',
-        fontWeight: 'bold',
-    },
-    captureStats: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        borderTopWidth: 1,
-        borderBottomWidth: 1,
-        borderColor: '#eee',
-        paddingVertical: 12,
-    },
-    captureStatText: {
-        fontSize: 16,
-        color: '#757575',
-    },
-    captureSectionCard: {
-        marginHorizontal: 40,
-        marginBottom: 20,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#fbc02d',
-    },
-    captureSectionTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#4E342E',
-    },
-    captureIngRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingVertical: 8,
-        borderBottomWidth: 0.5,
-        borderBottomColor: '#eee',
-    },
-    captureIngName: {
-        fontSize: 16,
-    },
-    captureIngQty: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#B8860B',
-    },
-    captureStepRow: {
-        flexDirection: 'row',
-        marginBottom: 16,
-    },
-    captureStepNum: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: '#fbc02d',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    captureStepNumText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-    captureStepText: {
-        flex: 1,
-        fontSize: 16,
-        lineHeight: 24,
-    },
-    captureFooter: {
-        paddingTop: 40,
-        paddingBottom: 20,
-        alignItems: 'center',
-    },
-    captureFooterText: {
-        fontSize: 14,
-        color: '#bdbdbd',
-    }
+    container: { flex: 1, backgroundColor: '#F9F7F2' },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    appbar: { backgroundColor: '#FFF' },
+    appbarTitle: { fontWeight: 'bold', color: '#3E2723', letterSpacing: 0.5 },
+    scrollContent: { padding: 20, paddingBottom: 100 },
+
+    // Timeline
+    timelineItem: { flexDirection: 'row', minHeight: 70 },
+    timelineLeft: { width: 32, alignItems: 'center' },
+    timelineDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#E0E0E0', marginTop: 8, zIndex: 1, borderWidth: 2, borderColor: '#fff' },
+    timelineLine: { flex: 1, width: 2, backgroundColor: '#F3E5AB', marginVertical: -4 },
+    timelineRight: { flex: 1, paddingBottom: 20, paddingHorizontal: 16, paddingTop: 4 },
+    timelineRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    versionNum: { fontSize: 15, fontWeight: '500', color: '#8C7853' },
+    versionDate: { fontSize: 11, color: '#A1887F' },
+    versionNotes: { color: '#6D4C41', marginTop: 6, fontSize: 13, lineHeight: 18 },
+    comparisonBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FDF7E1', borderRadius: 8, paddingRight: 8, marginTop: 8, alignSelf: 'flex-start', borderWidth: 1, borderColor: '#FFECB3' },
+    comparisonTxt: { fontSize: 10, color: '#C5A059', fontWeight: 'bold' },
+
+    // Cards
+    card: { marginBottom: 12, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: '#EFEBE9', overflow: 'hidden' },
+    mainSectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#3E2723', marginTop: 24, marginBottom: 16, letterSpacing: -0.5 },
+
+    // Scaler
+    scalerContainer: { backgroundColor: '#3E2723', borderRadius: 24, padding: 20, marginBottom: 20, overflow: 'hidden' },
+    scalerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+    scalerInfo: { flexDirection: 'row', alignItems: 'center' },
+    scalerLabel: { fontSize: 14, color: '#F3E5AB', fontWeight: 'bold', marginLeft: 6 },
+    scalerActiveTxt: { color: '#BD9A7A', fontSize: 11, textAlign: 'center' },
+    standardScalerActive: { backgroundColor: 'rgba(255,255,255,0.05)', padding: 12, borderRadius: 16 },
+    stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24 },
+    stepperBtn: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12 },
+    servingsCount: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
+    servingsNum: { fontSize: 24, fontWeight: 'bold', color: '#FFF' },
+    servingsUnit: { fontSize: 12, color: '#BD9A7A' },
+    scalerInput: { fontSize: 16, fontWeight: 'bold', color: '#C5A059', borderBottomWidth: 1, borderBottomColor: '#C5A059', padding: 2, minWidth: 40, textAlign: 'right' },
+
+    // Ingredients
+    sectionContainer: { backgroundColor: '#FFF', borderRadius: 24, padding: 20, marginBottom: 20, borderWidth: 1, borderColor: '#F2EFE9' },
+    row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+    ingName: { fontSize: 16, color: '#3E2723', fontWeight: '500' },
+    ingQty: { fontSize: 16, fontWeight: 'bold', color: '#C5A059' },
+    ratioBarBg: { height: 4, backgroundColor: '#F9F7F2', borderRadius: 2, overflow: 'hidden' },
+    ratioBarFill: { height: '100%', backgroundColor: '#C5A059', borderRadius: 2 },
+    emptyText: { textAlign: 'center', padding: 20, color: '#A1887F', fontStyle: 'italic' },
+
+    // Steps
+    stepsContainer: { gap: 12 },
+    stepCard: { backgroundColor: '#FFF', borderRadius: 24, padding: 4, borderWidth: 1, borderColor: '#F2EFE9' },
+    stepHeader: { flexDirection: 'row', alignItems: 'flex-start', padding: 16 },
+    stepNumContainer: { width: 28, height: 28, borderRadius: 10, backgroundColor: '#3E2723', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+    stepNum: { fontSize: 14, fontWeight: 'bold', color: '#F3E5AB' },
+    stepDesc: { flex: 1, fontSize: 15, lineHeight: 24, color: '#3E2723' },
+    stepSectionsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16, paddingTop: 0 },
+    sectionChip: { backgroundColor: '#F3E5AB', borderRadius: 8 },
+
+    // Dialogs & Forms
+    nativeInput: { borderWidth: 1, borderColor: '#F2EFE9', borderRadius: 16, padding: 16, fontSize: 16, backgroundColor: '#FFF', textAlignVertical: 'top' },
+    shareDialog: { backgroundColor: '#FFF', borderRadius: 28 },
+    dialogTitle: { fontWeight: 'bold', color: '#3E2723', textAlign: 'center' },
+    shareContent: { alignItems: 'center', paddingBottom: 20 },
+    shareSubtitle: { fontSize: 14, color: '#8C7853', textAlign: 'center', marginBottom: 20 },
+    qrContainer: { padding: 20, backgroundColor: '#FFF', borderRadius: 24, borderWidth: 1, borderColor: '#F2EFE9', marginBottom: 20 },
+    copyBtn: { borderRadius: 12, width: '100%' },
+    dialogActions: { flexDirection: 'column', gap: 8, paddingHorizontal: 24, paddingBottom: 16 },
+    pinterestBtn: { width: '100%', borderRadius: 12 },
+
+    // Capture (Infographic)
+    captureCard: { padding: 40, backgroundColor: '#FFF', borderRadius: 0 },
+    captureHeader: { marginBottom: 24 },
+    captureTitle: { fontSize: 32, fontWeight: 'bold', color: '#3E2723', marginBottom: 8 },
+    captureVersion: { fontSize: 18, color: '#C5A059', fontWeight: 'bold' },
+    captureStats: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#F2EFE9', paddingVertical: 12 },
+    captureStatText: { fontSize: 16, color: '#8C7853' },
+    captureSectionCard: { marginHorizontal: 40, marginBottom: 20, borderRadius: 16, borderWidth: 1, borderColor: '#C5A059' },
+    captureSectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#3E2723' },
+    captureIngRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 0.5, borderBottomColor: '#F2EFE9' },
+    captureIngName: { fontSize: 16, color: '#3E2723' },
+    captureIngQty: { fontSize: 16, fontWeight: 'bold', color: '#C5A059' },
+    captureStepRow: { flexDirection: 'row', marginBottom: 16 },
+    captureStepNum: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#C5A059', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+    captureStepNumText: { color: '#FFF', fontSize: 14, fontWeight: 'bold' },
+    captureStepText: { flex: 1, fontSize: 16, lineHeight: 24, color: '#3E2723' },
+    captureFooter: { paddingTop: 40, paddingBottom: 20, alignItems: 'center' },
+    captureFooterText: { fontSize: 14, color: '#A1887F', opacity: 0.5 }
 });

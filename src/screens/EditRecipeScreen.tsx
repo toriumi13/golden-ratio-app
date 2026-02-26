@@ -9,6 +9,7 @@ import {
     addIngredient, updateIngredient, deleteIngredient,
     addStep, updateStep, deleteStep
 } from '../store/repository';
+import { getVirtualWeight, getRatioWidth } from '../utils/ratio';
 
 export default function EditRecipeScreen() {
     const route = useRoute<any>();
@@ -214,7 +215,7 @@ export default function EditRecipeScreen() {
 
                 <Text style={styles.mainSectionTitle}>材料・グループ</Text>
                 {currentVersion?.sections?.map((section) => {
-                    const maxQty = Math.max(...(section.ingredients?.map(i => i.quantity) || [1]));
+                    const maxWeight = Math.max(...(section.ingredients?.map(i => getVirtualWeight(i.quantity, i.unit)) || [1]));
                     return (
                         <Card key={section.id} style={styles.sectionCard} elevation={1}>
                             <View style={styles.sectionHeaderRow}>
@@ -245,7 +246,7 @@ export default function EditRecipeScreen() {
                                             </View>
                                         </View>
                                         <View style={styles.ratioBarBg}>
-                                            <View style={[styles.ratioBarFill, { width: `${(ing.quantity / maxQty) * 100}%` }]} />
+                                            <View style={[styles.ratioBarFill, { width: getRatioWidth(ing.quantity, ing.unit, maxWeight) as any }]} />
                                         </View>
                                     </View>
                                 ))}

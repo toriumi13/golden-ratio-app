@@ -6,7 +6,7 @@ import { View, ActivityIndicator } from 'react-native';
 import { Provider as PaperProvider, MD3LightTheme as DefaultTheme, Text, Button } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation';
-import { observeAuth } from './src/store/auth';
+import { observeAuth, loginAnonymously } from './src/store/auth';
 import LoginScreen from './src/screens/LoginScreen';
 import { initializeSubscription, syncSubscriptionUser } from './src/store/subscription';
 import { Platform } from 'react-native';
@@ -16,16 +16,24 @@ const theme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: '#B8860B', // Metallic Gold (Rich)
+    primary: '#C5A059', // Champagne Gold (Sophisticated)
     onPrimary: '#FFFFFF',
-    primaryContainer: '#FFECB3',
-    onPrimaryContainer: '#5D4037',
-    secondary: '#4E342E', // Dark Espresso
+    primaryContainer: '#F3E5AB',
+    onPrimaryContainer: '#4A3728',
+    secondary: '#3E2723', // Deep Espresso
     onSecondary: '#FFFFFF',
     surface: '#FFFFFF',
-    background: '#FDFCF0', // Light Cream/Paper color
-    outline: '#D4AF37',   // Brass/Gold outline
-    surfaceVariant: '#F7F4E9',
+    background: '#F9F7F2', // Nuance Beige/Off-white
+    outline: '#E0C097',   // Soft Gold outline
+    surfaceVariant: '#F2EF E9',
+    elevation: {
+      level0: 'transparent',
+      level1: '#FFFFFF',
+      level2: '#FDFCFB',
+      level3: '#FBF9F7',
+      level4: '#FAF7F5',
+      level5: '#F9F5F2',
+    },
   },
 };
 
@@ -42,7 +50,7 @@ const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
 
     console.log("Setting up auth observer...");
     const unsubscribe = observeAuth((user) => {
-      console.log("Auth State Changed:", user ? `UID: ${user.uid}` : "No User");
+      console.log("Auth State Changed:", user ? `UID: ${user.uid} (Anonymous: ${user.isAnonymous})` : "No User");
       setUser(user);
 
       // Sync user with RevenueCat
@@ -53,7 +61,8 @@ const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
       if (initializing) setInitializing(false);
 
       if (!user) {
-        console.log("No user session found. Waiting for login...");
+        console.log("No user session found. Attempting anonymous login...");
+        loginAnonymously();
       }
     });
 

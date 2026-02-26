@@ -115,16 +115,16 @@ export default function LoginScreen({ onClose }: LoginScreenProps) {
     return (
         <ScrollView contentContainerStyle={[styles.container, !auth.currentUser && { paddingTop: 60 }]}>
             <View style={styles.header}>
-                {auth.currentUser && (
+                {(auth.currentUser && (!isAnonymous || onClose)) && (
                     <IconButton icon="close" onPress={onClose} style={styles.closeButton} />
                 )}
                 <Text variant="headlineMedium" style={styles.title}>
-                    {auth.currentUser ? 'アカウント設定' : '黄金比のレシピ帳'}
+                    {auth.currentUser && !isAnonymous ? 'アカウント設定' : '黄金比のレシピ帳'}
                 </Text>
                 <Text variant="bodyMedium" style={styles.subtitle}>
-                    {auth.currentUser
-                        ? (isAnonymous ? 'アカウントを連携してデータを永続的に保存しましょう。' : '全ての研究データは安全に同期されています。')
-                        : '最高のレシピ、その「究極の一杯」を追い求めるために。'}
+                    {auth.currentUser && !isAnonymous
+                        ? '全ての研究データは安全に同期されています。'
+                        : (isAnonymous ? 'アカウントを連携してデータを保存しましょう。' : '最高のレシピ、その「究極の一杯」を追い求めるために。')}
                 </Text>
             </View>
 
