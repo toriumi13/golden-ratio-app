@@ -105,7 +105,7 @@ export const createRecipe = async (name: string, originRecipeId?: string): Promi
         id: recipeId,
         userId: userId,
         name,
-        originRecipeId: originRecipeId || undefined,
+        originRecipeId: originRecipeId || null,
         createdAt: now,
         currentVersionId: versionId,
         latestVersionNumber: '1.0',
@@ -169,8 +169,8 @@ export const getRecipeDetails = async (recipeId: string): Promise<Recipe | null>
 
     const recipe = recipeSnap.data() as Recipe;
 
-    // Safety check: ensure current user owns this recipe
-    if (recipe.userId !== auth.currentUser?.uid) {
+    // Safety check: ensure current user owns this recipe OR it is a public recipe
+    if (recipe.userId !== auth.currentUser?.uid && !recipe.isPublic) {
         throw new Error("Permission denied");
     }
 
@@ -224,13 +224,13 @@ export const getAllPublicRecipes = async (): Promise<Recipe[]> => {
     const recipesCol = collection(db, 'recipes');
     const q = query(
         recipesCol,
-        where("isPublic", "==", true),
-        where("originRecipeId", "==", null) // Only show original creations
+        where("isPublic", "==", true)
     );
     const snapshot = await getDocs(q);
-    // Sort in memory to avoid needing a composite index for now
+    // Sort and filter in memory to handle missing fields correctly
     return snapshot.docs
         .map(doc => doc.data() as Recipe)
+        .filter(r => !r.originRecipeId) // Only show original creations
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 };
 
@@ -240,6 +240,11 @@ export const updateRecipeName = async (recipeId: string, newName: string): Promi
 };
 
 // --- Section/Ingredient/Step Helpers ---
+export const saveVersion = async (recipeId: string, versionId: string, versionData: Version): Promise<void> => {
+    const versionRef = doc(db, 'recipes', recipeId, 'versions', versionId);
+    await setDoc(versionRef, versionData);
+};
+
 const updateVersionData = async (recipeId: string, versionId: string, updateFn: (v: Version) => Version) => {
     const versionRef = doc(db, 'recipes', recipeId, 'versions', versionId);
     const vSnap = await getDoc(versionRef);

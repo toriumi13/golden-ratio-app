@@ -3,7 +3,8 @@ import { View, ScrollView, StyleSheet, Alert, TextInput as RNTextInput, Platform
 import { Appbar, Text, Card, Divider, Chip, useTheme, Button, Portal, Dialog, IconButton } from 'react-native-paper';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Recipe, Version } from '../types';
-import { getRecipeDetails, createNewVersionFromExisting, getUserProfile, UserProfile, setRecipePublicStatus } from '../store/repository';
+import { db, auth } from '../store/firebase';
+import { getRecipeDetails, createNewVersionFromExisting, getUserProfile, UserProfile, setRecipePublicStatus, createRecipe, addSection, addIngredient, addStep } from '../store/repository';
 import Paywall from '../components/Paywall';
 import { presentPaywall } from '../store/subscription';
 import QRCode from 'react-native-qrcode-svg';
@@ -15,7 +16,7 @@ export default function RecipeDetailScreen() {
     const route = useRoute<any>();
     const navigation = useNavigation<any>();
     const theme = useTheme();
-    const { recipeId } = route.params;
+    const { recipeId, fromShowcase } = route.params;
 
     const [recipe, setRecipe] = useState<Recipe | null>(null);
     const [loading, setLoading] = useState(true);
@@ -36,6 +37,7 @@ export default function RecipeDetailScreen() {
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [showShareDialog, setShowShareDialog] = useState(false);
     const [shareUrl, setShareUrl] = useState('');
+    const [isImporting, setIsImporting] = useState(false);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const contentRef = React.useRef<View>(null);
 
@@ -107,6 +109,58 @@ export default function RecipeDetailScreen() {
             } else {
                 Alert.alert('エラー', 'バージョンの作成に失敗しました');
             }
+        }
+    };
+
+    const handleImportFromShowcase = async () => {
+        if (!recipe || !currentVersion) return;
+        setIsImporting(true);
+        try {
+            // 1. Create a new recipe for the current user
+            const newRecipe = await createRecipe(recipe.name, recipe.id);
+            const newRecipeId = newRecipe.id;
+            const newVersionId = newRecipe.currentVersionId!;
+
+            // 2. Copy sections and ingredients
+            if (currentVersion.sections) {
+                for (let i = 0; i < currentVersion.sections.length; i++) {
+                    const s = currentVersion.sections[i];
+                    const sectionId = await addSection(newRecipeId, newVersionId, s.name, i);
+                    if (s.ingredients) {
+                        for (const ing of s.ingredients) {
+                            await addIngredient(newRecipeId, newVersionId, sectionId, ing.name, ing.quantity, ing.unit);
+                        }
+                    }
+                }
+            }
+
+            // 3. Copy steps
+            if (currentVersion.steps) {
+                for (let i = 0; i < currentVersion.steps.length; i++) {
+                    const step = currentVersion.steps[i];
+                    await addStep(newRecipeId, newVersionId, step.description, i);
+                }
+            }
+
+            Alert.alert(
+                '保存完了',
+                'このレシピをあなたの研究ノートに保存しました。',
+                [
+                    {
+                        text: '研究ノートを開く',
+                        onPress: () => navigation.navigate('RecipeDetail', { recipeId: newRecipeId })
+                    },
+                    {
+                        text: '閉じる',
+                        style: 'cancel'
+                    }
+                ]
+            );
+        } catch (error: any) {
+            console.error('Import from showcase failed:', error);
+            Alert.alert('エラー', 'レシピの保存に失敗しました');
+        } finally {
+            setIsImporting(false);
         }
     };
 
@@ -220,7 +274,7 @@ export default function RecipeDetailScreen() {
             <Appbar.Header>
                 <Appbar.BackAction onPress={navigation.goBack} />
                 <Appbar.Content title={recipe.name} />
-                {prevVersion && (
+                {!fromShowcase && prevVersion && (
                     <Appbar.Action
                         icon="compare-horizontal"
                         onPress={() => navigation.navigate('Delta', {
@@ -230,25 +284,47 @@ export default function RecipeDetailScreen() {
                         })}
                     />
                 )}
-                <Appbar.Action
-                    icon="share-variant"
-                    onPress={handleShare}
-                />
-                <Appbar.Action
-                    icon="pencil"
-                    onPress={() => navigation.navigate('EditRecipe', { recipeId: recipe.id, versionId: currentVersion?.id })}
-                />
+                {!fromShowcase && recipe.userId === auth.currentUser?.uid && (
+                    <Appbar.Action
+                        icon="share-variant"
+                        onPress={handleShare}
+                    />
+                )}
+                {!fromShowcase && recipe.userId === auth.currentUser?.uid && (
+                    <Appbar.Action
+                        icon="pencil"
+                        onPress={() => navigation.navigate('EditRecipe', { recipeId: recipe.id, versionId: currentVersion?.id })}
+                    />
+                )}
             </Appbar.Header>
 
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
+                {fromShowcase && (
+                    <View style={styles.importInfo}>
+                        <Text style={styles.importInfoText}>
+                            このレシピを気に入りましたか？
+                        </Text>
+                        <Button
+                            mode="contained"
+                            onPress={handleImportFromShowcase}
+                            loading={isImporting}
+                            disabled={isImporting}
+                            icon="plus"
+                            style={styles.importButton}
+                            labelStyle={styles.importButtonLabel}
+                        >
+                            自分のレシピに追加
+                        </Button>
+                    </View>
+                )}
                 {/* Evolution Timeline (UI Aim 3 - Vertical Refinement) */}
                 <Card style={[styles.card, { marginTop: 16 }]} elevation={2}>
                     <Card.Title
                         title="進化の記録"
                         titleStyle={{ fontWeight: 'bold' }}
                         left={(props) => <IconButton {...props} icon="history" iconColor={theme.colors.primary} />}
-                        right={(props) => (
+                        right={(props) => (!fromShowcase && recipe.userId === auth.currentUser?.uid) ? (
                             <IconButton
                                 {...props}
                                 icon="plus"
@@ -260,7 +336,7 @@ export default function RecipeDetailScreen() {
                                     setShowNewVersionDialog(true);
                                 }}
                             />
-                        )}
+                        ) : null}
                     />
                     <Card.Content style={{ paddingLeft: 8 }}>
                         {recipe.versions?.map((v, idx) => (
@@ -750,5 +826,29 @@ const styles = StyleSheet.create({
     captureStepNumText: { color: '#FFF', fontSize: 14, fontWeight: 'bold' },
     captureStepText: { flex: 1, fontSize: 16, lineHeight: 24, color: '#3E2723' },
     captureFooter: { paddingTop: 40, paddingBottom: 20, alignItems: 'center' },
-    captureFooterText: { fontSize: 14, color: '#A1887F', opacity: 0.5 }
+    captureFooterText: { fontSize: 14, color: '#A1887F', opacity: 0.5 },
+    importInfo: {
+        padding: 24,
+        borderRadius: 24,
+        marginBottom: 20,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#F3E5AB',
+        backgroundColor: '#FFFBEB',
+    },
+    importInfoText: {
+        fontSize: 14,
+        color: '#8C7853',
+        marginBottom: 16,
+        fontWeight: 'bold',
+    },
+    importButton: {
+        borderRadius: 12,
+        width: '100%',
+        paddingVertical: 4,
+    },
+    importButtonLabel: {
+        fontSize: 14,
+        fontWeight: 'bold',
+    }
 });

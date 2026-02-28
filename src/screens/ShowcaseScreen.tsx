@@ -45,7 +45,8 @@ const ShowcaseScreen = ({ navigation }: any) => {
             onPress={() => {
                 navigation.navigate('RecipeDetail', {
                     recipeId: item.id,
-                    recipeName: item.name
+                    recipeName: item.name,
+                    fromShowcase: true
                 });
             }}
         >
