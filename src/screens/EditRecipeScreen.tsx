@@ -203,7 +203,7 @@ export default function EditRecipeScreen() {
                             <RNTextInput
                                 key={`recipe-name-${recipe?.id}`}
                                 defaultValue={recipeName}
-                                onEndEditing={(e) => setRecipeName(e.nativeEvent.text)}
+                                onChangeText={(text) => setRecipeName(text)}
                                 placeholder="例: 我が家のハンバーグ"
                                 style={[styles.nativeInput, { flex: 1 }]}
                                 returnKeyType="done"
@@ -294,7 +294,7 @@ export default function EditRecipeScreen() {
                         <RNTextInput
                             key={`section-${dialogKey}`}
                             defaultValue={sectionName}
-                            onEndEditing={(e) => setSectionName(e.nativeEvent.text)}
+                            onChangeText={(text) => setSectionName(text)}
                             placeholder="例: タネ、ソース"
                             style={styles.dialogInput}
                             autoFocus
@@ -313,7 +313,7 @@ export default function EditRecipeScreen() {
                         <RNTextInput
                             key={`ing-name-${dialogKey}`}
                             defaultValue={ingredientName}
-                            onEndEditing={(e) => setIngredientName(e.nativeEvent.text)}
+                            onChangeText={(text) => setIngredientName(text)}
                             style={styles.dialogInput}
                             autoFocus
                         />
@@ -323,7 +323,7 @@ export default function EditRecipeScreen() {
                                 <RNTextInput
                                     key={`ing-qty-${dialogKey}`}
                                     defaultValue={ingredientQuantity}
-                                    onEndEditing={(e) => setIngredientQuantity(e.nativeEvent.text)}
+                                    onChangeText={(text) => setIngredientQuantity(text)}
                                     keyboardType="numeric"
                                     style={styles.dialogInput}
                                 />
@@ -333,7 +333,7 @@ export default function EditRecipeScreen() {
                                 <RNTextInput
                                     key={`ing-unit-${dialogKey}`}
                                     defaultValue={ingredientUnit}
-                                    onEndEditing={(e) => setIngredientUnit(e.nativeEvent.text)}
+                                    onChangeText={(text) => setIngredientUnit(text)}
                                     style={styles.dialogInput}
                                 />
                             </View>
@@ -352,7 +352,7 @@ export default function EditRecipeScreen() {
                         <RNTextInput
                             key={`step-${dialogKey}`}
                             defaultValue={stepDescription}
-                            onEndEditing={(e) => setStepDescription(e.nativeEvent.text)}
+                            onChangeText={(text) => setStepDescription(text)}
                             multiline
                             style={[styles.dialogInput, { minHeight: 80 }]}
                             autoFocus

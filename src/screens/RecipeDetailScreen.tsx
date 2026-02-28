@@ -571,7 +571,7 @@ export default function RecipeDetailScreen() {
                             key={`version-notes-${dialogKey}`}
                             placeholder="今回の変更点メモ（例: 醤油を減らした）"
                             defaultValue=""
-                            onEndEditing={(e) => setNewVersionNotes(e.nativeEvent.text)}
+                            onChangeText={(text) => setNewVersionNotes(text)}
                             style={styles.nativeInput}
                             multiline
                             numberOfLines={3}
