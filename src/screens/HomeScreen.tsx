@@ -143,7 +143,7 @@ export default function HomeScreen() {
     const handleImportPreset = async (preset: PresetRecipe) => {
         setIsImporting(true);
         try {
-            const recipe = await createRecipe(preset.name);
+            const recipe = await createRecipe(preset.name, `preset_${preset.id}`);
             const recipeId = recipe.id;
             const versionId = recipe.currentVersionId!;
 
@@ -173,7 +173,8 @@ export default function HomeScreen() {
         if (!importData) return;
         setIsImporting(true);
         try {
-            const recipe = await createRecipe(importData.name);
+            const originId = importData.version?.recipeId || importData.id;
+            const recipe = await createRecipe(importData.name, originId);
             const recipeId = recipe.id;
             const versionId = recipe.currentVersionId!;
 

@@ -80,7 +80,7 @@ export const getRecipeCount = async (): Promise<number> => {
 };
 
 
-export const createRecipe = async (name: string): Promise<Recipe> => {
+export const createRecipe = async (name: string, originRecipeId?: string): Promise<Recipe> => {
     const userId = auth.currentUser?.uid;
     if (!userId) throw new Error("User must be logged in to create a recipe");
 
@@ -105,6 +105,7 @@ export const createRecipe = async (name: string): Promise<Recipe> => {
         id: recipeId,
         userId: userId,
         name,
+        originRecipeId: originRecipeId || undefined,
         createdAt: now,
         currentVersionId: versionId,
         latestVersionNumber: '1.0',
@@ -223,7 +224,8 @@ export const getAllPublicRecipes = async (): Promise<Recipe[]> => {
     const recipesCol = collection(db, 'recipes');
     const q = query(
         recipesCol,
-        where("isPublic", "==", true)
+        where("isPublic", "==", true),
+        where("originRecipeId", "==", null) // Only show original creations
     );
     const snapshot = await getDocs(q);
     // Sort in memory to avoid needing a composite index for now
