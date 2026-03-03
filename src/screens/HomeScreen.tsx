@@ -490,7 +490,7 @@ export default function HomeScreen() {
                     <Dialog.Title style={styles.dialogTitle}>{selectedPreset?.name}</Dialog.Title>
                     <Dialog.ScrollArea style={styles.dialogScroll}>
                         <ScrollView showsVerticalScrollIndicator={false}>
-                            <View style={{ paddingVertical: 10 }}>
+                            <View style={{ paddingVertical: 10, paddingHorizontal: 16 }}>
                                 <Text style={styles.dialogDescription}>{selectedPreset?.description}</Text>
                                 <Text style={styles.sectionHeader}>材料の比率</Text>
                                 {selectedPreset?.sections.map((s, idx) => (
@@ -708,6 +708,9 @@ const styles = StyleSheet.create({
     dialogTitle: {
         fontWeight: 'bold',
         color: '#4E342E',
+        textAlign: 'center',
+        fontSize: 20,
+        marginTop: 16,
     },
     dialogScroll: {
         paddingHorizontal: 0, // ScrollView internally handles horizontal padding if needed, but Dialog.ScrollArea has default horizontal padding
@@ -715,8 +718,11 @@ const styles = StyleSheet.create({
     dialogDescription: {
         fontSize: 14,
         color: '#8C7853',
-        marginBottom: 16,
-        lineHeight: 20,
+        marginBottom: 20,
+        lineHeight: 22,
+        textAlign: 'center',
+        fontStyle: 'italic',
+        opacity: 0.9,
     },
     sectionHeader: {
         fontSize: 16,
