@@ -109,7 +109,8 @@ export const createRecipe = async (name: string, originRecipeId?: string): Promi
         createdAt: now,
         currentVersionId: versionId,
         latestVersionNumber: '1.0',
-        latestVersionDate: now
+        latestVersionDate: now,
+        tags: []
     };
 
     // 1. Create Recipe
@@ -237,6 +238,11 @@ export const getAllPublicRecipes = async (): Promise<Recipe[]> => {
 export const updateRecipeName = async (recipeId: string, newName: string): Promise<void> => {
     const recipeRef = doc(db, 'recipes', recipeId);
     await updateDoc(recipeRef, { name: newName });
+};
+
+export const updateRecipeTags = async (recipeId: string, tags: string[]): Promise<void> => {
+    const recipeRef = doc(db, 'recipes', recipeId);
+    await updateDoc(recipeRef, { tags });
 };
 
 // --- Section/Ingredient/Step Helpers ---

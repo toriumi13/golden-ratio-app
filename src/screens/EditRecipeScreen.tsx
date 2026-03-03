@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, ScrollView, StyleSheet, Alert, TextInput as RNTextInput } from 'react-native';
-import { Appbar, Text, Button, Card, IconButton, useTheme, Divider, Portal, Dialog, Checkbox, Surface } from 'react-native-paper';
+import { View, ScrollView, StyleSheet, Alert, TextInput as RNTextInput, Platform } from 'react-native';
+import { Appbar, Text, Button, Card, IconButton, useTheme, Divider, Portal, Dialog, Checkbox, Surface, Chip } from 'react-native-paper';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Recipe, Section, Step, Ingredient } from '../types';
 import {
     getRecipeDetails, updateRecipeName,
     addSection, updateSection, deleteSection,
     addIngredient, updateIngredient, deleteIngredient,
-    addStep, updateStep, deleteStep
+    addStep, updateStep, deleteStep, updateRecipeTags
 } from '../store/repository';
 import { getVirtualWeight, getRatioWidth } from '../utils/ratio';
 
@@ -19,6 +19,7 @@ export default function EditRecipeScreen() {
 
     const [recipe, setRecipe] = useState<Recipe | null>(null);
     const [recipeName, setRecipeName] = useState('');
+    const [tagInput, setTagInput] = useState('');
     const [loading, setLoading] = useState(true);
 
     // Dialog & Editing States
@@ -57,13 +58,37 @@ export default function EditRecipeScreen() {
         loadData();
     }, [recipeId]);
 
-    const currentVersion = recipe?.versions?.find(v => v.id === versionId) || recipe?.versions?.[0];
+    const currentVersion = recipe?.versions?.find((v: any) => v.id === versionId) || recipe?.versions?.[0];
 
     const handleSaveRecipeName = async () => {
         if (recipeName.trim() && recipe) {
             await updateRecipeName(recipe.id, recipeName.trim());
             Alert.alert('成功', 'レシピ名を更新しました');
         }
+    };
+
+    const handleAddTag = async () => {
+        if (!tagInput.trim() || !recipe) return;
+        const currentTags = recipe.tags || [];
+        if (currentTags.length >= 3) {
+            Alert.alert('制限', 'タグは最大3つまで登録できます。');
+            return;
+        }
+        if (currentTags.includes(tagInput.trim())) {
+            setTagInput('');
+            return;
+        }
+        const newTags = [...currentTags, tagInput.trim()];
+        await updateRecipeTags(recipe.id, newTags);
+        setTagInput('');
+        loadData();
+    };
+
+    const handleDeleteTag = async (tagToDelete: string) => {
+        if (!recipe) return;
+        const newTags = (recipe.tags || []).filter(t => t !== tagToDelete);
+        await updateRecipeTags(recipe.id, newTags);
+        loadData();
     };
 
     // --- Section Handlers ---
@@ -125,6 +150,29 @@ export default function EditRecipeScreen() {
         loadData();
     };
 
+    const handleInlineUpdateIngredient = async (ing: Ingredient, field: 'name' | 'quantity' | 'unit', value: string) => {
+        if (!currentVersion) return;
+
+        let newName = ing.name;
+        let newQty = ing.quantity;
+        let newUnit = ing.unit;
+
+        if (field === 'name') newName = value;
+        if (field === 'unit') newUnit = value;
+        if (field === 'quantity') {
+            const parsed = parseFloat(value);
+            if (isNaN(parsed)) return;
+            newQty = parsed;
+        }
+
+        if (newName === ing.name && newQty === ing.quantity && newUnit === ing.unit) return;
+
+        await updateIngredient(recipeId, currentVersion.id, ing.id, newName.trim(), newQty, newUnit.trim());
+        // For inline editing, we might not want to reload the whole data immediately to avoid scroll jump/focus loss,
+        // but here we do it to update the ratio bars.
+        loadData();
+    };
+
     // --- Step Handlers ---
     const openStepDialog = (step?: Step) => {
         if (step) {
@@ -154,21 +202,45 @@ export default function EditRecipeScreen() {
 
     // --- Delete Handlers ---
     const handleDeleteSection = async (sectionId: string, name: string) => {
-        Alert.alert('確認', `「${name}」を削除しますか？材料も削除されます。`, [
+        const message = `「${name}」を削除しますか？材料も削除されます。`;
+        if (Platform.OS === 'web') {
+            if (window.confirm(message)) {
+                if (currentVersion) await deleteSection(recipeId, currentVersion.id, sectionId);
+                loadData();
+            }
+            return;
+        }
+        Alert.alert('確認', message, [
             { text: 'キャンセル', style: 'cancel' },
             { text: '削除', style: 'destructive', onPress: async () => { if (currentVersion) await deleteSection(recipeId, currentVersion.id, sectionId); loadData(); } }
         ]);
     };
 
     const handleDeleteIngredient = async (ingredientId: string, name: string) => {
-        Alert.alert('確認', `「${name}」を削除しますか？`, [
+        const message = `「${name}」を削除しますか？`;
+        if (Platform.OS === 'web') {
+            if (window.confirm(message)) {
+                if (currentVersion) await deleteIngredient(recipeId, currentVersion.id, ingredientId);
+                loadData();
+            }
+            return;
+        }
+        Alert.alert('確認', message, [
             { text: 'キャンセル', style: 'cancel' },
             { text: '削除', style: 'destructive', onPress: async () => { if (currentVersion) await deleteIngredient(recipeId, currentVersion.id, ingredientId); loadData(); } }
         ]);
     };
 
     const handleDeleteStep = async (stepId: string, desc: string) => {
-        Alert.alert('確認', `この工程を削除しますか？`, [
+        const message = `この工程を削除しますか？`;
+        if (Platform.OS === 'web') {
+            if (window.confirm(message)) {
+                if (currentVersion) await deleteStep(recipeId, currentVersion.id, stepId);
+                loadData();
+            }
+            return;
+        }
+        Alert.alert('確認', message, [
             { text: 'キャンセル', style: 'cancel' },
             { text: '削除', style: 'destructive', onPress: async () => { if (currentVersion) await deleteStep(recipeId, currentVersion.id, stepId); loadData(); } }
         ]);
@@ -210,6 +282,43 @@ export default function EditRecipeScreen() {
                             />
                             <Button mode="contained" onPress={handleSaveRecipeName} style={styles.inlineActionBtn} compact>更新</Button>
                         </View>
+
+                        <Divider style={{ marginVertical: 16 }} />
+
+                        <View style={styles.cardInfoRow}>
+                            <IconButton icon="tag-outline" size={20} iconColor={theme.colors.primary} style={{ margin: 0 }} />
+                            <Text style={styles.cardLabel}>タグ (最大3つ)</Text>
+                        </View>
+                        <View style={styles.tagInputRow}>
+                            <RNTextInput
+                                value={tagInput}
+                                onChangeText={setTagInput}
+                                placeholder="例: 夕食"
+                                style={[styles.nativeInput, { flex: 1 }]}
+                                onSubmitEditing={handleAddTag}
+                            />
+                            <Button
+                                mode="outlined"
+                                onPress={handleAddTag}
+                                style={[styles.inlineActionBtn, { borderColor: theme.colors.primary }]}
+                                compact
+                                disabled={(recipe?.tags?.length || 0) >= 3}
+                            >
+                                追加
+                            </Button>
+                        </View>
+                        <View style={styles.editTagRow}>
+                            {recipe?.tags?.map(tag => (
+                                <Chip
+                                    key={tag}
+                                    onClose={() => handleDeleteTag(tag)}
+                                    style={styles.editTagChip}
+                                    textStyle={{ fontSize: 12 }}
+                                >
+                                    #{tag}
+                                </Chip>
+                            ))}
+                        </View>
                     </Card.Content>
                 </Card>
 
@@ -235,14 +344,26 @@ export default function EditRecipeScreen() {
                                     <View key={ing.id} style={styles.ingItemContainer}>
                                         <View style={styles.ingMainRow}>
                                             <View style={styles.ingInfo}>
-                                                <Text style={styles.ingNameText}>{ing.name}</Text>
-                                                <Text style={styles.ingQtyText}>
-                                                    {ing.unit?.includes('適量') ? '' : `${ing.quantity} `}{ing.unit}
-                                                </Text>
+                                                <RNTextInput
+                                                    defaultValue={ing.name}
+                                                    style={styles.inlineIngNameInput}
+                                                    onEndEditing={(e) => handleInlineUpdateIngredient(ing, 'name', e.nativeEvent.text)}
+                                                />
+                                                <RNTextInput
+                                                    defaultValue={ing.quantity.toString()}
+                                                    style={styles.inlineIngQtyInput}
+                                                    keyboardType="numeric"
+                                                    onEndEditing={(e) => handleInlineUpdateIngredient(ing, 'quantity', e.nativeEvent.text)}
+                                                />
+                                                <RNTextInput
+                                                    defaultValue={ing.unit}
+                                                    style={styles.inlineIngUnitInput}
+                                                    onEndEditing={(e) => handleInlineUpdateIngredient(ing, 'unit', e.nativeEvent.text)}
+                                                />
                                             </View>
                                             <View style={styles.ingActions}>
-                                                <IconButton icon="pencil" size={18} iconColor="#AAA" onPress={() => openIngredientDialog(section.id, ing)} />
-                                                <IconButton icon="close" size={18} iconColor="#AAA" onPress={() => handleDeleteIngredient(ing.id, ing.name)} />
+                                                <IconButton icon="pencil" size={18} iconColor="#999" onPress={() => openIngredientDialog(section.id, ing)} />
+                                                <IconButton icon="close" size={18} iconColor="#FF5252" onPress={() => handleDeleteIngredient(ing.id, ing.name)} />
                                             </View>
                                         </View>
                                         <View style={styles.ratioBarBg}>
@@ -425,4 +546,10 @@ const styles = StyleSheet.create({
     inputLabel: { fontSize: 12, fontWeight: 'bold', color: '#8C7853', marginBottom: 6, marginLeft: 4 },
     checkboxRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 2 },
     tabRow: { flexDirection: 'row', marginBottom: 16, backgroundColor: '#F5F5F5', borderRadius: 8, padding: 4 },
+    tagInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+    editTagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+    editTagChip: { backgroundColor: '#F9F7F2', borderColor: '#F2EFE9', borderWidth: 1 },
+    inlineIngNameInput: { flex: 2, fontSize: 15, color: '#333', padding: 4, borderRadius: 4, backgroundColor: '#FAFAFA' },
+    inlineIngQtyInput: { flex: 1, fontSize: 14, fontWeight: 'bold', color: '#B8860B', padding: 4, borderRadius: 4, backgroundColor: '#FAFAFA', textAlign: 'right' },
+    inlineIngUnitInput: { flex: 0.8, fontSize: 13, color: '#666', padding: 4, borderRadius: 4, backgroundColor: '#FAFAFA' },
 });

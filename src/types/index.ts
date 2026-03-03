@@ -8,6 +8,7 @@ export interface Recipe {
   currentVersionId?: string;
   latestVersionNumber?: string;
   latestVersionDate?: string;
+  tags?: string[];
   versions?: Version[];
 }
 

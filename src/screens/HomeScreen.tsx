@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, FlatList, StyleSheet, Dimensions, Alert, Platform, TouchableOpacity } from 'react-native';
+import { View, FlatList, StyleSheet, Dimensions, Alert, Platform, TouchableOpacity, ScrollView } from 'react-native';
 import { Appbar, Card, FAB, Text, useTheme, IconButton, Surface, Button, Portal, Dialog } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Recipe } from '../types';
@@ -26,6 +26,8 @@ export default function HomeScreen() {
     const [selectedPreset, setSelectedPreset] = useState<PresetRecipe | null>(null);
     const [importData, setImportData] = useState<any>(null);
     const [isImporting, setIsImporting] = useState(false);
+    const [selectedTag, setSelectedTag] = useState<string | null>(null);
+    const [allTags, setAllTags] = useState<string[]>([]);
     const navigation = useNavigation<any>();
     const theme = useTheme();
 
@@ -33,6 +35,13 @@ export default function HomeScreen() {
     const loadRecipes = async () => {
         const data = await getRecipes();
         setRecipes(data);
+
+        // Extract unique tags
+        const tags = new Set<string>();
+        data.forEach(r => {
+            r.tags?.forEach(t => tags.add(t));
+        });
+        setAllTags(Array.from(tags).sort());
     };
 
     // Listen for auth state changes to refresh data
@@ -268,6 +277,16 @@ export default function HomeScreen() {
                         {item.name}
                     </Text>
 
+                    {item.tags && item.tags.length > 0 && (
+                        <View style={styles.tagBadgeRow}>
+                            {item.tags.map(tag => (
+                                <View key={tag} style={styles.tagBadge}>
+                                    <Text style={styles.tagBadgeText}>#{tag}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    )}
+
                     <View style={styles.cardFooter}>
                         <View style={styles.statItem}>
                             <IconButton icon="history" size={14} iconColor="#888" style={styles.statIcon} />
@@ -339,7 +358,7 @@ export default function HomeScreen() {
             ) : (
                 <View style={{ flex: 1 }}>
                     <FlatList
-                        data={recipes}
+                        data={selectedTag ? recipes.filter(r => r.tags?.includes(selectedTag)) : recipes}
                         keyExtractor={(item) => item.id}
                         renderItem={renderRecipeCard}
                         contentContainerStyle={styles.listContent}
@@ -380,7 +399,45 @@ export default function HomeScreen() {
                                     contentContainerStyle={styles.presetsList}
                                 />
                                 <View style={styles.divider} />
-                                <Text style={styles.sectionTitle}>あなたの研究ノート</Text>
+
+                                <View style={styles.sectionHeaderRow}>
+                                    <Text style={styles.sectionTitle}>あなたの研究ノート</Text>
+                                    {selectedTag && (
+                                        <Button
+                                            mode="text"
+                                            compact
+                                            onPress={() => setSelectedTag(null)}
+                                            labelStyle={{ fontSize: 12 }}
+                                        >
+                                            フィルター解除
+                                        </Button>
+                                    )}
+                                </View>
+
+                                {allTags.length > 0 && (
+                                    <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        style={styles.tagsScroll}
+                                        contentContainerStyle={styles.tagsScrollContent}
+                                    >
+                                        <TouchableOpacity
+                                            onPress={() => setSelectedTag(null)}
+                                            style={[styles.filterChip, !selectedTag && styles.filterChipActive]}
+                                        >
+                                            <Text style={[styles.filterChipText, !selectedTag && styles.filterChipTextActive]}>すべて</Text>
+                                        </TouchableOpacity>
+                                        {allTags.map(tag => (
+                                            <TouchableOpacity
+                                                key={tag}
+                                                onPress={() => setSelectedTag(tag)}
+                                                style={[styles.filterChip, selectedTag === tag && styles.filterChipActive]}
+                                            >
+                                                <Text style={[styles.filterChipText, selectedTag === tag && styles.filterChipTextActive]}>#{tag}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                )}
                             </View>
                         }
                     />
@@ -554,8 +611,27 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#3E2723',
         fontSize: 22,
-        marginBottom: 16,
+        marginBottom: 8,
         letterSpacing: -0.5,
+    },
+    tagBadgeRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 6,
+        marginBottom: 16,
+    },
+    tagBadge: {
+        backgroundColor: '#F5F5F5',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: '#EEE',
+    },
+    tagBadgeText: {
+        fontSize: 10,
+        color: '#8C7853',
+        fontWeight: 'bold',
     },
     cardFooter: {
         flexDirection: 'row',
@@ -800,19 +876,45 @@ const styles = StyleSheet.create({
     showcaseBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFF',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
         alignSelf: 'flex-start',
         paddingHorizontal: 8,
         paddingVertical: 2,
-        borderRadius: 12,
+        borderRadius: 8,
         marginBottom: 8,
     },
     showcaseBadgeText: {
-        color: '#C5A059',
         fontSize: 9,
         fontWeight: '900',
+        color: '#C5A059',
         marginLeft: 4,
         textTransform: 'uppercase',
-        letterSpacing: 0.5,
+    },
+    tagsScroll: {
+        marginBottom: 16,
+    },
+    tagsScrollContent: {
+        paddingRight: 16,
+        gap: 8,
+    },
+    filterChip: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        backgroundColor: '#FFF',
+        borderWidth: 1,
+        borderColor: '#EFEBE9',
+    },
+    filterChipActive: {
+        backgroundColor: '#C5A059',
+        borderColor: '#C5A059',
+    },
+    filterChipText: {
+        fontSize: 12,
+        color: '#8C7853',
+        fontWeight: '600',
+    },
+    filterChipTextActive: {
+        color: '#FFF',
     },
 });

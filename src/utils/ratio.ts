@@ -49,9 +49,13 @@ export const getVirtualWeight = (quantity: number, unit: string): number => {
  */
 export const getRatioWidth = (quantity: number, unit: string, maxVirtualWeight: number): string => {
     const weight = getVirtualWeight(quantity, unit);
-    if (weight === 0 || maxVirtualWeight === 0) return '0%';
+
+    // If weight is 0 (e.g. "to taste"), show a minimal visible bar (5%)
+    if (weight === 0) return '5%';
+    if (maxVirtualWeight === 0) return '0%';
 
     // Linear normalization
     const percentage = (weight / maxVirtualWeight) * 100;
-    return `${Math.min(100, Math.max(2, percentage))}%`;
+    // Ensure at least 5% width for visibility
+    return `${Math.min(100, Math.max(5, percentage))}%`;
 };
