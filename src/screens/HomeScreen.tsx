@@ -489,24 +489,26 @@ export default function HomeScreen() {
                 <Dialog visible={!!selectedPreset} onDismiss={() => setSelectedPreset(null)} style={styles.presetDialog}>
                     <Dialog.Title style={styles.dialogTitle}>{selectedPreset?.name}</Dialog.Title>
                     <Dialog.ScrollArea style={styles.dialogScroll}>
-                        <View style={{ paddingVertical: 10 }}>
-                            <Text style={styles.dialogDescription}>{selectedPreset?.description}</Text>
-                            <Text style={styles.sectionHeader}>材料の比率</Text>
-                            {selectedPreset?.sections.map((s, idx) => (
-                                <View key={idx} style={styles.dialogSection}>
-                                    <Text style={styles.dialogSectionName}>{s.name}</Text>
-                                    {s.ingredients.map((ing, iidx) => (
-                                        <Text key={iidx} style={styles.dialogIngredient}>
-                                            • {ing.name}: {ing.unit?.includes('適量') ? '' : `${ing.quantity} `}{ing.unit}
-                                        </Text>
-                                    ))}
-                                </View>
-                            ))}
-                            <Text style={styles.sectionHeader}>作り方</Text>
-                            {selectedPreset?.steps.map((step, idx) => (
-                                <Text key={idx} style={styles.dialogStep}>{idx + 1}. {step}</Text>
-                            ))}
-                        </View>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            <View style={{ paddingVertical: 10 }}>
+                                <Text style={styles.dialogDescription}>{selectedPreset?.description}</Text>
+                                <Text style={styles.sectionHeader}>材料の比率</Text>
+                                {selectedPreset?.sections.map((s, idx) => (
+                                    <View key={idx} style={styles.dialogSection}>
+                                        <Text style={styles.dialogSectionName}>{s.name}</Text>
+                                        {s.ingredients.map((ing, iidx) => (
+                                            <Text key={iidx} style={styles.dialogIngredient}>
+                                                • {ing.name}: {ing.unit?.includes('適量') ? '' : `${ing.quantity} `}{ing.unit}
+                                            </Text>
+                                        ))}
+                                    </View>
+                                ))}
+                                <Text style={styles.sectionHeader}>作り方</Text>
+                                {selectedPreset?.steps.map((step, idx) => (
+                                    <Text key={idx} style={styles.dialogStep}>{idx + 1}. {step}</Text>
+                                ))}
+                            </View>
+                        </ScrollView>
                     </Dialog.ScrollArea>
                     <Dialog.Actions>
                         <Button onPress={() => setSelectedPreset(null)} textColor="#888">キャンセル</Button>
@@ -700,14 +702,15 @@ const styles = StyleSheet.create({
     presetDialog: {
         backgroundColor: '#fff',
         borderRadius: 20,
-        maxHeight: '80%',
+        maxHeight: '85%',
+        paddingVertical: 8,
     },
     dialogTitle: {
         fontWeight: 'bold',
         color: '#4E342E',
     },
     dialogScroll: {
-        paddingHorizontal: 24,
+        paddingHorizontal: 0, // ScrollView internally handles horizontal padding if needed, but Dialog.ScrollArea has default horizontal padding
     },
     dialogDescription: {
         fontSize: 14,
