@@ -168,11 +168,16 @@ export default function RecipeDetailScreen() {
         if (!recipe || !currentVersion) return;
 
         // Strictly prevent sharing if it's a copy (has originRecipeId)
-        if (recipe.originRecipeId) {
-            Alert.alert(
-                '共有の制限',
-                'このレシピは他の方の研究結果を参考にしたものです。ショーケースへの公開や外部への共有は、あなた自身がゼロから作成した「独自のオリジナリティある研究ノート」のみに制限されています。\n\n自ら発見した究極の比率を記録して、世界に発信しましょう！'
-            );
+        const isCopy = recipe.originRecipeId && recipe.originRecipeId !== "" && recipe.originRecipeId !== "null";
+
+        if (isCopy) {
+            const message = 'このレシピは他の方の研究結果を参考にしたものです。ショーケースへの公開や外部への共有は、あなた自身がゼロから作成した「独自のオリジナリティある研究ノート」のみに制限されています。\n\n自ら発見した究極の比率を記録して、世界に発信しましょう！';
+
+            if (Platform.OS === 'web') {
+                window.alert(message);
+            } else {
+                Alert.alert('共有の制限', message);
+            }
             return;
         }
 
