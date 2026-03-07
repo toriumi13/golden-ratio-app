@@ -167,20 +167,28 @@ export default function RecipeDetailScreen() {
     const handleShare = async () => {
         if (!recipe || !currentVersion) return;
 
-        try {
-            // Set public status even for copied recipes to allow URL-based sharing/import
-            await setRecipePublicStatus(recipe.id, currentVersion.id, true);
-
-            if (recipe.originRecipeId && recipe.versions && recipe.versions.length <= 1) {
-                Alert.alert(
-                    '共有の制限',
-                    'このレシピは他の研究者から提供されたものです。あなたが独自の改良（新しいバージョンの作成）を行うまでは、ショーケースへ再公開することはできません。個人間での共有は以下のURLをコピーして行ってください。'
-                );
-            }
-
+        // Prevent sharing if it's a direct copy (has originRecipeId) 
+        // and hasn't been significantly modified (only one version)
+        if (recipe.originRecipeId && recipe.versions && recipe.versions.length <= 1) {
+            Alert.alert(
+                '共有の制限',
+                'このレシピは他の研究者から提供されたものです。あなたが独自の改良（新しいバージョンの作成）を行うまでは、ショーケースへ再公開することはできません。個人間での共有はURLをコピーして行ってください。'
+            );
+            // We can still allow sharing the URL, but don't mark it as Public
             const origin = (Platform.OS === 'web' && window.location.origin)
                 ? window.location.origin
                 : 'https://golden-ratio-app-zeta.vercel.app';
+            const url = `${origin}/r/${recipe.id}?versionId=${currentVersion.id}&recipeName=${encodeURIComponent(recipe.name)}`;
+            setShareUrl(url);
+            setShowShareDialog(true);
+            return;
+        }
+
+        try {
+            // Updated to ID-based sharing: Make it public first
+            await setRecipePublicStatus(recipe.id, currentVersion.id, true);
+
+            // Sharable URL with OGP proxy (Clean URL)
             const url = `${origin}/r/${recipe.id}?versionId=${currentVersion.id}&recipeName=${encodeURIComponent(recipe.name)}`;
             setShareUrl(url);
             setShowShareDialog(true);
