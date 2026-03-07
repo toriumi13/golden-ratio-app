@@ -28,9 +28,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Fetch actual recipe data for SEO
         let ingredientsText = "";
         let versionData = null;
-        if (versionId) {
-            try {
-                const { doc, getDoc } = require('firebase/firestore');
+        let fetchedRecipeName = "";
+
+        try {
+            const { doc, getDoc } = require('firebase/firestore');
+
+            // 1. Fetch Recipe document to get the correct name
+            const rRef = doc(db, 'recipes', recipeId);
+            const rSnap = await getDoc(rRef);
+            if (rSnap.exists()) {
+                fetchedRecipeName = rSnap.data().name;
+            }
+
+            // 2. Fetch Version document for ingredients
+            if (versionId) {
                 const vRef = doc(db, 'recipes', recipeId, 'versions', versionId);
                 const vSnap = await getDoc(vRef);
                 if (vSnap.exists()) {
@@ -39,12 +50,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         s.name + ": " + s.ingredients?.map((i: any) => `${i.name}${i.quantity}${i.unit}`).join(', ')
                     ).join(' | ');
                 }
-            } catch (e) {
-                console.error("Error fetching version for SEO", e);
             }
+        } catch (e) {
+            console.error("Error fetching recipe/version for SEO", e);
         }
 
-        const name = recipeName || '黄金比レシピ';
+        const name = recipeName || fetchedRecipeName || '黄金比レシピ';
         const description = ingredientsText
             ? `材料: ${ingredientsText.substring(0, 150)}... 黄金比をチェックして料理をアップグレードしましょう。`
             : "このレシピの調味比率をチェックして、あなたの料理をアップグレードしましょう。";
