@@ -1,32 +1,47 @@
 import React from 'react';
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { db } from '../src/store/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
-// Use Node.js runtime which is confirmed to work in this project
+// Use Node.js runtime
 export const config = {
     runtime: 'nodejs',
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    console.log(`[DEBUG-OG-GEN] Request received. Query: ${JSON.stringify(req.query)}`);
+    console.log(`[DEBUG-OG-GEN] [${new Date().toISOString()}] Handler started. Query: ${JSON.stringify(req.query)}`);
 
     try {
         const { ImageResponse } = await import('@vercel/og');
 
-        // Robust parameter extraction
-        let nameParam: any = req.query.recipeName;
-
-        // Fallback: manually parse URL if req.query is empty or missing expected key
-        if (!nameParam && req.url) {
-            const fullUrl = new URL(req.url, `https://${req.headers.host || 'localhost'}`);
-            nameParam = fullUrl.searchParams.get('recipeName');
-        }
-
-        const name = (Array.isArray(nameParam) ? nameParam[0] : (nameParam || '')) || '黄金比レシピ';
+        // Parameter extraction
+        const recipeId = (Array.isArray(req.query.recipeId) ? req.query.recipeId[0] : req.query.recipeId) as string;
+        const versionId = (Array.isArray(req.query.versionId) ? req.query.versionId[0] : req.query.versionId) as string;
         const cb = req.query.cb || 'no-cb';
 
-        console.log(`[DEBUG-OG-GEN] [${new Date().toISOString()}] Rendering. Name: "${name}", Raw Query: ${JSON.stringify(req.query)}`);
+        let name = (Array.isArray(req.query.recipeName) ? req.query.recipeName[0] : req.query.recipeName) as string;
 
-        const debugLabel = `v2.2-${cb.toString().slice(-4)}`;
+        // If name is missing, fetch from Firestore
+        if (!name && recipeId) {
+            console.log(`[DEBUG-OG-GEN] Name missing in query, fetching from Firestore for recipeId: ${recipeId}`);
+            try {
+                const rRef = doc(db, 'recipes', recipeId);
+                const rSnap = await getDoc(rRef);
+                if (rSnap.exists()) {
+                    name = rSnap.data().name;
+                    console.log(`[DEBUG-OG-GEN] Fetched from DB: ${name}`);
+                } else {
+                    console.log(`[DEBUG-OG-GEN] Recipe not found for OGP: ${recipeId}`);
+                }
+            } catch (fsError: any) {
+                console.error(`[DEBUG-OG-GEN] Firestore error: ${fsError.message}`);
+            }
+        }
+
+        const displayName = name || '黄金比レシピ';
+        console.log(`[DEBUG-OG-GEN] Rendering Image. Name: "${displayName}", CB: ${cb}`);
+
+        const debugLabel = `v2.3-${cb.toString().slice(-4)}`;
 
         const element = React.createElement(
             'div',
@@ -41,11 +56,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     backgroundColor: '#fff',
                     backgroundImage: 'radial-gradient(circle at 25px 25px, #fbc02d 2%, transparent 0%), radial-gradient(circle at 75px 75px, #fbc02d 2%, transparent 0%)',
                     backgroundSize: '100px 100px',
+                    fontFamily: 'sans-serif',
                 },
             },
             [
                 // Debug Corner
                 React.createElement('div', {
+                    key: 'debug',
                     style: { position: 'absolute', top: 10, right: 10, fontSize: 12, color: '#ccc' }
                 }, debugLabel),
 
@@ -85,9 +102,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                                     textAlign: 'center',
                                     lineHeight: 1.2,
                                     maxWidth: 800,
+                                    display: 'flex',
                                 },
                             },
-                            name
+                            displayName
                         ),
                         React.createElement(
                             'div',
