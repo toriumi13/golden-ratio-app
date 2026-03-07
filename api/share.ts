@@ -1,5 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../src/store/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 // Use standard Node.js runtime for maximum stability
 export const config = {
@@ -7,7 +8,9 @@ export const config = {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    console.log('[DEBUG-SHARE] Node.js Handler started');
+    const timestamp = new Date().toISOString();
+    console.log(`[DEBUG-SHARE] [${timestamp}] Handler started. URL: ${req.url}`);
+
     try {
         const host = (req.headers.host as string) || 'golden-ratio-app-zeta.vercel.app';
         const protocol = host.includes('localhost') ? 'http' : 'https';
@@ -17,10 +20,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const recipeId = searchParams.get('recipeId');
         const versionId = searchParams.get('versionId');
         const recipeName = searchParams.get('recipeName');
-        console.log(`[DEBUG-SHARE] Params: r=${recipeId}, v=${versionId}, n=${recipeName}`);
+        console.log(`[DEBUG-SHARE] Parsed Params: recipeId=${recipeId}, versionId=${versionId}, recipeName=${recipeName}`);
 
         if (!recipeId) {
-            console.log('[DEBUG-SHARE] Missing recipeId, redirecting');
+            console.log('[DEBUG-SHARE] No recipeId provided. Redirecting to home.');
             res.redirect('/');
             return;
         }
@@ -30,18 +33,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         let versionData = null;
         let fetchedRecipeName = "";
 
+        console.log(`[DEBUG-SHARE] Fetching Firestore data for recipeId: ${recipeId}`);
         try {
-            const { doc, getDoc } = require('firebase/firestore');
-
             // 1. Fetch Recipe document to get the correct name
             const rRef = doc(db, 'recipes', recipeId);
             const rSnap = await getDoc(rRef);
             if (rSnap.exists()) {
-                fetchedRecipeName = rSnap.data().name;
+                const rData = rSnap.data();
+                fetchedRecipeName = rData.name;
+                console.log(`[DEBUG-SHARE] Recipe found. Name: ${fetchedRecipeName}`);
+            } else {
+                console.log(`[DEBUG-SHARE] Recipe NOT found in Firestore. recipeId: ${recipeId}`);
             }
 
             // 2. Fetch Version document for ingredients
             if (versionId) {
+                console.log(`[DEBUG-SHARE] Fetching Version data: ${versionId}`);
                 const vRef = doc(db, 'recipes', recipeId, 'versions', versionId);
                 const vSnap = await getDoc(vRef);
                 if (vSnap.exists()) {
@@ -49,10 +56,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     ingredientsText = versionData.sections?.map((s: any) =>
                         s.name + ": " + s.ingredients?.map((i: any) => `${i.name}${i.quantity}${i.unit}`).join(', ')
                     ).join(' | ');
+                    console.log(`[DEBUG-SHARE] Version found. Ingredients length: ${ingredientsText.length}`);
+                } else {
+                    console.log(`[DEBUG-SHARE] Version NOT found in Firestore. versionId: ${versionId}`);
                 }
             }
-        } catch (e) {
-            console.error("Error fetching recipe/version for SEO", e);
+        } catch (e: any) {
+            console.error("[DEBUG-SHARE] Firestore error:", e.message);
         }
 
         const name = recipeName || fetchedRecipeName || '黄金比レシピ';
@@ -60,11 +70,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             ? `材料: ${ingredientsText.substring(0, 150)}... 黄金比をチェックして料理をアップグレードしましょう。`
             : "このレシピの調味比率をチェックして、あなたの料理をアップグレードしましょう。";
 
+        console.log(`[DEBUG-SHARE] Final Name: ${name}`);
+
         const origin = `${protocol}://${host}`;
-        const ogImageUrl = `${origin}/api/og-gen?recipeName=${encodeURIComponent(name)}`;
+        // Add cache-buster to OG Image URL
+        const cb = Date.now();
+        const ogImageUrl = `${origin}/api/og-gen?recipeName=${encodeURIComponent(name)}&cb=${cb}`;
         const shareUrl = versionId
             ? `${origin}/r/${recipeId}/${versionId}`
             : `${origin}/r/${recipeId}`;
+
+        console.log(`[DEBUG-SHARE] OG Image URL: ${ogImageUrl}`);
 
         // Structured Data (JSON-LD) for Recipe
         const structuredData = {

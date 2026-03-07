@@ -18,7 +18,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const protocol = host.includes('localhost') ? 'http' : 'https';
         const url = new URL(req.url || '/', `${protocol}://${host}`);
         const name = url.searchParams.get('recipeName') || '黄金比レシピ';
-        console.log(`[DEBUG-OG-GEN] Name to render: ${name}`);
+        const cb = url.searchParams.get('cb') || 'no-cb';
+        console.log(`[DEBUG-OG-GEN] Request URL: ${req.url}`);
+        console.log(`[DEBUG-OG-GEN] Name to render: ${name}, CacheBuster: ${cb}`);
 
         const element = React.createElement(
             'div',
