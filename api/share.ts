@@ -73,15 +73,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log(`[DEBUG-SHARE] Final Name: ${name}`);
 
         const origin = `${protocol}://${host}`;
-        // Clean OG Image URL (ID-based fetch in generator)
+        // Pass the already fetched name to avoid redundant DB hits in og-gen (Optimization for crawlers)
         const cb = Date.now();
-        const ogImageUrl = `${origin}/api/og-gen?recipeId=${recipeId}&versionId=${versionId || ''}&cb=${cb}`;
+        const ogImageUrl = `${origin}/api/og-gen?recipeName=${encodeURIComponent(name)}&recipeId=${recipeId}&versionId=${versionId || ''}&cb=${cb}`;
 
         const shareUrl = versionId
             ? `${origin}/r/${recipeId}/${versionId}`
             : `${origin}/r/${recipeId}`;
 
-        console.log(`[DEBUG-SHARE] New Clean OG Image URL: ${ogImageUrl}`);
+        console.log(`[DEBUG-SHARE] UA: ${req.headers['user-agent']}`);
+        console.log(`[DEBUG-SHARE] Optimized OG Image URL: ${ogImageUrl}`);
 
         // Structured Data (JSON-LD) for Recipe
         const structuredData = {

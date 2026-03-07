@@ -9,7 +9,10 @@ export const config = {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    console.log(`[DEBUG-OG-GEN] [${new Date().toISOString()}] Handler started. Query: ${JSON.stringify(req.query)}`);
+    const timestamp = new Date().toISOString();
+    const ua = req.headers['user-agent'];
+    console.log(`[DEBUG-OG-GEN] [${timestamp}] Request received. UA: ${ua}`);
+    console.log(`[DEBUG-OG-GEN] Query: ${JSON.stringify(req.query)}`);
 
     try {
         const { ImageResponse } = await import('@vercel/og');
