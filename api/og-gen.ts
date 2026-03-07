@@ -12,11 +12,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         const { ImageResponse } = await import('@vercel/og');
 
-        const nameParam = req.query.recipeName;
-        const name = (Array.isArray(nameParam) ? nameParam[0] : nameParam) || '黄金比レシピ';
+        // Robust parameter extraction
+        let nameParam: any = req.query.recipeName;
+
+        // Fallback: manually parse URL if req.query is empty or missing expected key
+        if (!nameParam && req.url) {
+            const fullUrl = new URL(req.url, `https://${req.headers.host || 'localhost'}`);
+            nameParam = fullUrl.searchParams.get('recipeName');
+        }
+
+        const name = (Array.isArray(nameParam) ? nameParam[0] : (nameParam || '')) || '黄金比レシピ';
         const cb = req.query.cb || 'no-cb';
 
-        console.log(`[DEBUG-OG-GEN] Rendering Image. Name: "${name}", CB: ${cb}`);
+        console.log(`[DEBUG-OG-GEN] [${new Date().toISOString()}] Rendering. Name: "${name}", Raw Query: ${JSON.stringify(req.query)}`);
+
+        const debugLabel = `v2.2-${cb.toString().slice(-4)}`;
 
         const element = React.createElement(
             'div',
@@ -34,6 +44,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 },
             },
             [
+                // Debug Corner
+                React.createElement('div', {
+                    style: { position: 'absolute', top: 10, right: 10, fontSize: 12, color: '#ccc' }
+                }, debugLabel),
+
                 React.createElement(
                     'div',
                     {
