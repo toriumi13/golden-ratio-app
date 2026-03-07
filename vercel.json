@@ -3,6 +3,10 @@
     "outputDirectory": "dist",
     "rewrites": [
         {
+            "source": "/r/:recipeId",
+            "destination": "/api/share?recipeId=:recipeId"
+        },
+        {
             "source": "/sitemap.xml",
             "destination": "/api/sitemap"
         }

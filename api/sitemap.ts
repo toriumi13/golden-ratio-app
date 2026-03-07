@@ -39,7 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // IMPORTANT: XML must escape '&' as '&amp;' in URLs
             // Also ensure recipeName is double-encoded or at least XML-safe
             const safeName = encodeURIComponent(recipe.name);
-            const recipeUrl = `${origin}/api/share?recipeId=${recipe.id}&amp;recipeName=${safeName}`;
+            const recipeUrl = `${origin}/r/${recipe.id}?recipeName=${safeName}`;
 
             xml += '  <url>\n';
             xml += `    <loc>${recipeUrl}</loc>\n`;

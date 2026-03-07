@@ -52,8 +52,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const origin = `${protocol}://${host}`;
         const ogImageUrl = `${origin}/api/og-gen?recipeName=${encodeURIComponent(name)}`;
         const shareUrl = versionId
-            ? `${origin}/api/share?recipeId=${recipeId}&versionId=${versionId}&recipeName=${encodeURIComponent(name)}`
-            : `${origin}/api/share?recipeId=${recipeId}&recipeName=${encodeURIComponent(name)}`;
+            ? `${origin}/r/${recipeId}?versionId=${versionId}&recipeName=${encodeURIComponent(name)}`
+            : `${origin}/r/${recipeId}?recipeName=${encodeURIComponent(name)}`;
+
+        // Structured Data (JSON-LD) for Recipe
+        const structuredData = {
+            "@context": "https://schema.org/",
+            "@type": "Recipe",
+            "name": name,
+            "description": description,
+            "image": [ogImageUrl],
+            "author": {
+                "@type": "Organization",
+                "name": "Golden Ratio App"
+            },
+            "recipeIngredient": versionData?.sections?.flatMap((s: any) =>
+                s.ingredients?.map((i: any) => `${i.name} ${i.quantity}${i.unit}`)
+            ) || []
+        };
 
         console.log(`[DEBUG-SHARE] Generating HTML with SEO content`);
 
@@ -61,17 +77,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>${name} | 黄金比レシピ</title>
-    <!-- Standard OGP -->
-    <meta property="og:title" content="${name} の黄金比を確認">
+    <title>${name} | 黄金比のレシピ帳</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="canonical" href="${shareUrl}">
+    
+    <!-- Standard Meta -->
     <meta name="description" content="${description}">
+    <meta name="keywords" content="${name},レシピ,黄金比,比率,調味料,料理,cooking,recipe">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:title" content="${name} の黄金比を確認">
     <meta property="og:description" content="${description}">
     <meta property="og:image" content="${ogImageUrl}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:type" content="article">
     <meta property="og:url" content="${shareUrl}">
-    <meta property="og:site_name" content="黄金比レシピ">
+    <meta property="og:site_name" content="黄金比のレシピ帳">
     <meta property="og:locale" content="ja_JP">
     
     <!-- Twitter Specific -->
@@ -80,9 +102,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     <meta name="twitter:description" content="${description}">
     <meta name="twitter:image" content="${ogImageUrl}">
     <meta name="twitter:url" content="${shareUrl}">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+        ${JSON.stringify(structuredData)}
+    </script>
+
     <script>
         const p = new URLSearchParams(window.location.search);
-        const r = p.get('recipeId');
+        const r = "${recipeId}";
         const v = p.get('versionId');
         const n = p.get('recipeName');
         let t = "/";

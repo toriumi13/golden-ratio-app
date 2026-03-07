@@ -12,13 +12,18 @@ const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
     return (
-        <NavigationContainer>
+        <NavigationContainer
+            documentTitle={{
+                formatter: (options, route) =>
+                    `${options?.title ?? route?.name} | 黄金比のレシピ帳`,
+            }}
+        >
             <Stack.Navigator initialRouteName="Home" screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="Home" component={HomeScreen} />
-                <Stack.Screen name="Showcase" component={ShowcaseScreen} />
-                <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
-                <Stack.Screen name="EditRecipe" component={EditRecipeScreen} />
-                <Stack.Screen name="Delta" component={DeltaScreen} />
+                <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'ホーム' }} />
+                <Stack.Screen name="Showcase" component={ShowcaseScreen} options={{ title: 'ショーケース' }} />
+                <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} options={{ title: 'レシピ詳細' }} />
+                <Stack.Screen name="EditRecipe" component={EditRecipeScreen} options={{ title: 'レシピ編集' }} />
+                <Stack.Screen name="Delta" component={DeltaScreen} options={{ title: '比率の差分' }} />
             </Stack.Navigator>
         </NavigationContainer>
     );

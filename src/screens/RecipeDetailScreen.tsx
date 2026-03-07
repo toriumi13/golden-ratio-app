@@ -178,7 +178,7 @@ export default function RecipeDetailScreen() {
             const origin = (Platform.OS === 'web' && window.location.origin)
                 ? window.location.origin
                 : 'https://golden-ratio-app-zeta.vercel.app';
-            const url = `${origin}/api/share?recipeId=${recipe.id}&versionId=${currentVersion.id}&recipeName=${encodeURIComponent(recipe.name)}`;
+            const url = `${origin}/r/${recipe.id}?versionId=${currentVersion.id}&recipeName=${encodeURIComponent(recipe.name)}`;
             setShareUrl(url);
             setShowShareDialog(true);
             return;
@@ -188,13 +188,8 @@ export default function RecipeDetailScreen() {
             // Updated to ID-based sharing: Make it public first
             await setRecipePublicStatus(recipe.id, currentVersion.id, true);
 
-            // Use current origin for local testing, fallback to production URL
-            const origin = (Platform.OS === 'web' && window.location.origin)
-                ? window.location.origin
-                : 'https://golden-ratio-app-zeta.vercel.app';
-
-            // Sharable URL with OGP proxy
-            const url = `${origin}/api/share?recipeId=${recipe.id}&versionId=${currentVersion.id}&recipeName=${encodeURIComponent(recipe.name)}`;
+            // Sharable URL with OGP proxy (Clean URL)
+            const url = `${origin}/r/${recipe.id}?versionId=${currentVersion.id}&recipeName=${encodeURIComponent(recipe.name)}`;
             setShareUrl(url);
             setShowShareDialog(true);
         } catch (error) {
