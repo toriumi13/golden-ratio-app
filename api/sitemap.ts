@@ -14,6 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const snapshot = await getDocs(q);
         const publicRecipes = snapshot.docs
             .map(doc => doc.data())
+            .filter((r: any) => !r.originRecipeId) // Only show original creations in sitemap
             .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
         // Build XML

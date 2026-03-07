@@ -167,20 +167,12 @@ export default function RecipeDetailScreen() {
     const handleShare = async () => {
         if (!recipe || !currentVersion) return;
 
-        // Prevent sharing if it's a direct copy (has originRecipeId) 
-        // and hasn't been significantly modified (only one version)
-        if (recipe.originRecipeId && recipe.versions && recipe.versions.length <= 1) {
+        // Strictly prevent sharing if it's a copy (has originRecipeId)
+        if (recipe.originRecipeId) {
             Alert.alert(
                 '共有の制限',
-                'このレシピは他の研究者から提供されたものです。あなたが独自の改良（新しいバージョンの作成）を行うまでは、ショーケースへ再公開することはできません。個人間での共有はURLをコピーして行ってください。'
+                'このレシピは他の方の研究結果を参考にしたものです。ショーケースへの公開や外部への共有は、あなた自身がゼロから作成した「独自のオリジナリティある研究ノート」のみに制限されています。\n\n自ら発見した究極の比率を記録して、世界に発信しましょう！'
             );
-            // We can still allow sharing the URL, but don't mark it as Public
-            const origin = (Platform.OS === 'web' && window.location.origin)
-                ? window.location.origin
-                : 'https://golden-ratio-app-zeta.vercel.app';
-            const url = `${origin}/r/${recipe.id}?versionId=${currentVersion.id}&recipeName=${encodeURIComponent(recipe.name)}`;
-            setShareUrl(url);
-            setShowShareDialog(true);
             return;
         }
 
@@ -188,6 +180,9 @@ export default function RecipeDetailScreen() {
             // Updated to ID-based sharing: Make it public first
             await setRecipePublicStatus(recipe.id, currentVersion.id, true);
 
+            const origin = (Platform.OS === 'web' && window.location.origin)
+                ? window.location.origin
+                : 'https://golden-ratio-app-zeta.vercel.app';
             // Sharable URL with OGP proxy (Clean URL)
             const url = `${origin}/r/${recipe.id}?versionId=${currentVersion.id}&recipeName=${encodeURIComponent(recipe.name)}`;
             setShareUrl(url);
