@@ -188,8 +188,8 @@ export default function RecipeDetailScreen() {
             const origin = (Platform.OS === 'web' && window.location.origin)
                 ? window.location.origin
                 : 'https://golden-ratio-app-zeta.vercel.app';
-            // Sharable URL with OGP proxy (Clean URL)
-            const url = `${origin}/r/${recipe.id}?versionId=${currentVersion.id}&recipeName=${encodeURIComponent(recipe.name)}`;
+            // Clean path-based URL (/r/recipeId/versionId)
+            const url = `${origin}/r/${recipe.id}/${currentVersion.id}`;
             setShareUrl(url);
             setShowShareDialog(true);
         } catch (error) {

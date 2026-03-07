@@ -3,6 +3,10 @@
     "outputDirectory": "dist",
     "rewrites": [
         {
+            "source": "/r/:recipeId/:versionId",
+            "destination": "/api/share?recipeId=:recipeId&versionId=:versionId"
+        },
+        {
             "source": "/r/:recipeId",
             "destination": "/api/share?recipeId=:recipeId"
         },

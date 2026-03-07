@@ -52,8 +52,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const origin = `${protocol}://${host}`;
         const ogImageUrl = `${origin}/api/og-gen?recipeName=${encodeURIComponent(name)}`;
         const shareUrl = versionId
-            ? `${origin}/r/${recipeId}?versionId=${versionId}&recipeName=${encodeURIComponent(name)}`
-            : `${origin}/r/${recipeId}?recipeName=${encodeURIComponent(name)}`;
+            ? `${origin}/r/${recipeId}/${versionId}`
+            : `${origin}/r/${recipeId}`;
 
         // Structured Data (JSON-LD) for Recipe
         const structuredData = {
