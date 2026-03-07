@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, ScrollView, StyleSheet, Alert, TextInput as RNTextInput, Platform } from 'react-native';
 import { Appbar, Text, Button, Card, IconButton, useTheme, Divider, Portal, Dialog, Checkbox, Surface, Chip } from 'react-native-paper';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -48,6 +48,7 @@ export default function EditRecipeScreen() {
 
     // Counter to force TextInput remount (fixes Japanese IME issues)
     const [dialogKey, setDialogKey] = useState(0);
+    const saveTimers = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
     const loadData = async () => {
         const data = await getRecipeDetails(recipeId);
@@ -174,31 +175,71 @@ export default function EditRecipeScreen() {
             await addIngredient(recipeId, currentVersion.id, currentSectionId, ingredientName.trim(), quantity, ingredientUnit.trim() || 'g');
         }
         setShowIngredientDialog(false);
+        setDialogKey(k => k + 1);
         loadData();
     };
 
-    const handleInlineUpdateIngredient = async (ing: Ingredient, field: 'name' | 'quantity' | 'unit', value: string) => {
+    const handleInlineUpdateIngredient = (ing: Ingredient, field: 'name' | 'quantity' | 'unit', value: string) => {
         if (!currentVersion) return;
 
-        let newName = ing.name;
+        let newName = field === 'name' ? value : ing.name;
+        let newUnit = field === 'unit' ? value : ing.unit;
         let newQty = ing.quantity;
-        let newUnit = ing.unit;
 
-        if (field === 'name') newName = value;
-        if (field === 'unit') newUnit = value;
         if (field === 'quantity') {
             const qtyStr = value.trim() === '' ? '0' : value;
             const parsed = parseFloat(qtyStr);
-            if (isNaN(parsed)) return;
-            newQty = parsed;
+            if (isNaN(parsed)) {
+                // Allow empty or partial decimal during typing
+                if (value === '' || value === '.') {
+                    newQty = 0;
+                } else {
+                    return;
+                }
+            } else {
+                newQty = parsed;
+            }
         }
 
-        if (newName === ing.name && newQty === ing.quantity && newUnit === ing.unit) return;
-
-        await updateIngredient(recipeId, currentVersion.id, ing.id, newName.trim(), newQty, newUnit.trim());
-        // For inline editing, we might not want to reload the whole data immediately to avoid scroll jump/focus loss,
-        // but here we do it to update the ratio bars.
-        loadData();
+        // 1. Optimistic UI Update (Instant)
+        setRecipe(prev => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                versions: prev.versions?.map(v => {
+                    if (v.id === currentVersion.id) {
+                        return {
+                            ...v,
+                            sections: v.sections?.map(s => {
+                                if (s.id === ing.sectionId) {
+                                    return {
+                                        ...s,
+                                        ingredients: s.ingredients?.map(i => {
+                                            if (i.id === ing.id) {
+                                                const updated = { ...i, name: newName, quantity: newQty, unit: newUnit };
+                                                // Trigger debounce save with the LATEST values
+                                                if (saveTimers.current[ing.id]) clearTimeout(saveTimers.current[ing.id]);
+                                                saveTimers.current[ing.id] = setTimeout(async () => {
+                                                    try {
+                                                        await updateIngredient(recipeId, currentVersion.id, ing.id, updated.name.trim(), updated.quantity, updated.unit.trim());
+                                                    } catch (e) {
+                                                        console.error('Debounced update failed', e);
+                                                    }
+                                                }, 1000);
+                                                return updated;
+                                            }
+                                            return i;
+                                        })
+                                    };
+                                }
+                                return s;
+                            })
+                        };
+                    }
+                    return v;
+                })
+            };
+        });
     };
 
     // --- Step Handlers ---
@@ -419,20 +460,30 @@ export default function EditRecipeScreen() {
                                         <View style={styles.ingMainRow}>
                                             <View style={styles.ingInfo}>
                                                 <RNTextInput
+                                                    key={`ing-name-${ing.id}-${dialogKey}`}
                                                     defaultValue={ing.name}
+                                                    onChangeText={(text) => handleInlineUpdateIngredient(ing, 'name', text)}
                                                     style={styles.inlineIngNameInput}
-                                                    onEndEditing={(e) => handleInlineUpdateIngredient(ing, 'name', e.nativeEvent.text)}
+                                                    placeholder="材料名"
+                                                    placeholderTextColor="#CCC"
                                                 />
                                                 <RNTextInput
-                                                    defaultValue={ing.quantity.toString()}
+                                                    key={`ing-qty-${ing.id}-${dialogKey}`}
+                                                    defaultValue={ing.quantity.toString().replace(/\.0$/, '') === '0' ? '' : ing.quantity.toString().replace(/\.0$/, '')}
+                                                    onChangeText={(text) => handleInlineUpdateIngredient(ing, 'quantity', text)}
                                                     style={styles.inlineIngQtyInput}
                                                     keyboardType="decimal-pad"
-                                                    onEndEditing={(e) => handleInlineUpdateIngredient(ing, 'quantity', e.nativeEvent.text)}
+                                                    placeholder="0"
+                                                    placeholderTextColor="#CCC"
+                                                    textAlign="right"
                                                 />
                                                 <RNTextInput
+                                                    key={`ing-unit-${ing.id}-${dialogKey}`}
                                                     defaultValue={ing.unit}
+                                                    onChangeText={(text) => handleInlineUpdateIngredient(ing, 'unit', text)}
                                                     style={styles.inlineIngUnitInput}
-                                                    onEndEditing={(e) => handleInlineUpdateIngredient(ing, 'unit', e.nativeEvent.text)}
+                                                    placeholder="単位"
+                                                    placeholderTextColor="#CCC"
                                                 />
                                             </View>
                                             <View style={styles.ingActions}>
@@ -596,7 +647,7 @@ const styles = StyleSheet.create({
     ingredientsList: { padding: 16 },
     ingItemContainer: { marginBottom: 12 },
     ingMainRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-    ingInfo: { flexDirection: 'row', alignItems: 'baseline', gap: 8, flex: 1 },
+    ingInfo: { flexDirection: 'row', alignItems: 'center', gap: 2, flex: 1 },
     ingNameText: { fontSize: 15, color: '#333' },
     ingQtyText: { fontSize: 14, fontWeight: 'bold', color: '#B8860B' },
     ingActions: { flexDirection: 'row' },
@@ -625,7 +676,7 @@ const styles = StyleSheet.create({
     editTagChip: { backgroundColor: '#F9F7F2', borderColor: '#F2EFE9', borderWidth: 1 },
     categoryChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
     categoryChip: { marginVertical: 2 },
-    inlineIngNameInput: { flex: 2, fontSize: 15, color: '#333', padding: 4, borderRadius: 4, backgroundColor: '#FAFAFA' },
-    inlineIngQtyInput: { flex: 1, fontSize: 14, fontWeight: 'bold', color: '#B8860B', padding: 4, borderRadius: 4, backgroundColor: '#FAFAFA', textAlign: 'right' },
-    inlineIngUnitInput: { flex: 0.8, fontSize: 13, color: '#666', padding: 4, borderRadius: 4, backgroundColor: '#FAFAFA' },
+    inlineIngNameInput: { flex: 2, fontSize: 15, color: '#333', paddingVertical: 4, paddingHorizontal: 4, borderRadius: 4, backgroundColor: 'transparent', height: 36, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
+    inlineIngQtyInput: { flex: 1, fontSize: 14, fontWeight: 'bold', color: '#B8860B', paddingVertical: 4, paddingHorizontal: 4, borderRadius: 4, backgroundColor: 'transparent', height: 36, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
+    inlineIngUnitInput: { flex: 0.8, fontSize: 13, color: '#666', paddingVertical: 4, paddingHorizontal: 4, borderRadius: 4, backgroundColor: 'transparent', height: 36, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
 });
