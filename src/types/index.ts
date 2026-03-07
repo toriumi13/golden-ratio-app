@@ -9,6 +9,7 @@ export interface Recipe {
   latestVersionNumber?: string;
   latestVersionDate?: string;
   tags?: string[];
+  category?: string; // Standardized category ID
   versions?: Version[];
 }
 

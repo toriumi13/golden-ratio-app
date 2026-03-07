@@ -56,21 +56,21 @@ export default function RecipeDetailScreen() {
     };
 
     const handleServingsChange = (delta: number) => () => {
-        if (userProfile?.plan !== 'standard') {
-            setPaywallReason('人数の変更（スケーラー機能）はスタンダードプラン限定の機能です。');
-            setShowPaywall(true);
-            return;
-        }
         setServings(s => Math.max(1, s + delta));
     };
 
     const loadData = useCallback(async () => {
         const data = await getRecipeDetails(recipeId);
         setRecipe(data);
-        if (data && data.versions && data.versions.length > 0 && !selectedVersionId) {
-            const current = data.versions.find(v => v.id === data.currentVersionId) || data.versions[0];
-            setSelectedVersionId(current.id);
+        if (data && data.versions && data.versions.length > 0) {
+            const vId = selectedVersionId || data.currentVersionId;
+            const current = data.versions.find(v => v.id === vId) || data.versions[0];
+            if (!selectedVersionId) {
+                setSelectedVersionId(current.id);
+            }
             setServings(current.baseServings || 1);
+            setIsStandardScaler(false);
+            setScalerRelativeFactor(1);
         }
         const profile = await getUserProfile();
         setUserProfile(profile);
@@ -529,8 +529,9 @@ export default function RecipeDetailScreen() {
 
 
                 {currentVersion?.sections?.map((section) => {
+                    const ratio = servings / (currentVersion?.baseServings || 1);
                     const maxWeight = Math.max(...(section.ingredients?.map(i => {
-                        const baseVal = i.quantity * servings;
+                        const baseVal = i.quantity * ratio;
                         const actualQty = isStandardScaler ? baseVal * scalerRelativeFactor : baseVal;
                         return getVirtualWeight(actualQty, i.unit);
                     }) || [1]));
@@ -542,7 +543,7 @@ export default function RecipeDetailScreen() {
                             </Text>
 
                             {section.ingredients?.map((ing) => {
-                                const baseValue = ing.quantity * servings;
+                                const baseValue = ing.quantity * ratio;
                                 const displayValue = isStandardScaler ? baseValue * scalerRelativeFactor : baseValue;
 
                                 return (

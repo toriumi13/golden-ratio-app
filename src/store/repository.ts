@@ -80,7 +80,7 @@ export const getRecipeCount = async (): Promise<number> => {
 };
 
 
-export const createRecipe = async (name: string, originRecipeId?: string): Promise<Recipe> => {
+export const createRecipe = async (name: string, originRecipeId?: string, baseServings: number = 1): Promise<Recipe> => {
     const userId = auth.currentUser?.uid;
     if (!userId) throw new Error("User must be logged in to create a recipe");
 
@@ -123,7 +123,7 @@ export const createRecipe = async (name: string, originRecipeId?: string): Promi
         versionNumber: '1.0',
         createdAt: now,
         isPublic: false,
-        baseServings: 2, // Default to 2 for new recipes
+        baseServings,
         sections: [],
         steps: []
     });
@@ -251,6 +251,16 @@ export const updateRecipeName = async (recipeId: string, newName: string): Promi
 export const updateRecipeTags = async (recipeId: string, tags: string[]): Promise<void> => {
     const recipeRef = doc(db, 'recipes', recipeId);
     await updateDoc(recipeRef, { tags });
+};
+
+export const updateRecipeCategory = async (recipeId: string, category: string): Promise<void> => {
+    const recipeRef = doc(db, 'recipes', recipeId);
+    await updateDoc(recipeRef, { category });
+};
+
+export const updateBaseServings = async (recipeId: string, versionId: string, baseServings: number): Promise<void> => {
+    const versionRef = doc(db, 'recipes', recipeId, 'versions', versionId);
+    await updateDoc(versionRef, { baseServings });
 };
 
 // --- Section/Ingredient/Step Helpers ---
@@ -422,7 +432,7 @@ export const createNewVersionFromExisting = async (
         versionNumber: newVersionNumber,
         notes: notes || '',
         createdAt: now,
-        baseServings: sourceData.baseServings || 2
+        baseServings: sourceData.baseServings || 1
     };
 
     const newVersionRef = doc(db, 'recipes', recipeId, 'versions', newVersionId);

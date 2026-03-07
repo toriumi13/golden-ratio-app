@@ -40,8 +40,8 @@ export default function Paywall({ onClose, reason }: PaywallProps) {
                 />
                 <FeatureItem
                     icon="calculator"
-                    title="黄金比スケーラー"
-                    description="入力した分量から最適な配合を自動計算。分量調節が劇的に楽になります。"
+                    title="黄金比スケーラー（逆算機能）"
+                    description="手元の材料の分量から、他の材料の最適な配合を自動計算。究極の配合を即座に再現できます。"
                 />
                 <FeatureItem
                     icon="eye-off-outline"

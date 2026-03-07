@@ -152,7 +152,7 @@ export default function HomeScreen() {
     const handleImportPreset = async (preset: PresetRecipe) => {
         setIsImporting(true);
         try {
-            const recipe = await createRecipe(preset.name, `preset_${preset.id}`);
+            const recipe = await createRecipe(preset.name, `preset_${preset.id}`, preset.baseServings);
             const recipeId = recipe.id;
             const versionId = recipe.currentVersionId!;
 

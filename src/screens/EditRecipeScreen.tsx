@@ -7,9 +7,10 @@ import {
     getRecipeDetails, updateRecipeName,
     addSection, updateSection, deleteSection,
     addIngredient, updateIngredient, deleteIngredient,
-    addStep, updateStep, deleteStep, updateRecipeTags
+    addStep, updateStep, deleteStep, updateRecipeTags, updateRecipeCategory, updateBaseServings
 } from '../store/repository';
 import { getVirtualWeight, getRatioWidth } from '../utils/ratio';
+import { CATEGORIES } from '../constants/categories';
 
 export default function EditRecipeScreen() {
     const route = useRoute<any>();
@@ -20,6 +21,7 @@ export default function EditRecipeScreen() {
     const [recipe, setRecipe] = useState<Recipe | null>(null);
     const [recipeName, setRecipeName] = useState('');
     const [tagInput, setTagInput] = useState('');
+    const [baseServings, setBaseServings] = useState('1');
     const [loading, setLoading] = useState(true);
 
     // Dialog & Editing States
@@ -51,6 +53,12 @@ export default function EditRecipeScreen() {
         const data = await getRecipeDetails(recipeId);
         setRecipe(data);
         setRecipeName(data?.name || '');
+
+        // Get baseServings from current version
+        const vId = versionId || data?.currentVersionId;
+        const currentV = data?.versions?.find((v: any) => v.id === vId) || data?.versions?.[0];
+        setBaseServings(currentV?.baseServings?.toString() || '1');
+
         setLoading(false);
     };
 
@@ -84,10 +92,28 @@ export default function EditRecipeScreen() {
         loadData();
     };
 
+    const handleSelectCategory = async (categoryId: string) => {
+        if (!recipe) return;
+        await updateRecipeCategory(recipe.id, categoryId);
+        loadData();
+    };
+
     const handleDeleteTag = async (tagToDelete: string) => {
         if (!recipe) return;
         const newTags = (recipe.tags || []).filter(t => t !== tagToDelete);
         await updateRecipeTags(recipe.id, newTags);
+        loadData();
+    };
+
+    const handleSaveBaseServings = async () => {
+        if (!recipe || !currentVersion) return;
+        const val = parseInt(baseServings);
+        if (isNaN(val) || val < 1) {
+            Alert.alert('エラー', '基本人数は1以上の数値で入力してください');
+            return;
+        }
+        await updateBaseServings(recipe.id, currentVersion.id, val);
+        Alert.alert('成功', '基本人数を更新しました');
         loadData();
     };
 
@@ -136,7 +162,8 @@ export default function EditRecipeScreen() {
 
     const handleSaveIngredient = async () => {
         if (!currentSectionId || !ingredientName.trim()) return;
-        const quantity = parseFloat(ingredientQuantity);
+        const quantityStr = ingredientQuantity.trim() === '' ? '0' : ingredientQuantity;
+        const quantity = parseFloat(quantityStr);
         if (isNaN(quantity)) {
             Alert.alert('エラー', '分量は数値で入力してください');
             return;
@@ -160,7 +187,8 @@ export default function EditRecipeScreen() {
         if (field === 'name') newName = value;
         if (field === 'unit') newUnit = value;
         if (field === 'quantity') {
-            const parsed = parseFloat(value);
+            const qtyStr = value.trim() === '' ? '0' : value;
+            const parsed = parseFloat(qtyStr);
             if (isNaN(parsed)) return;
             newQty = parsed;
         }
@@ -319,6 +347,52 @@ export default function EditRecipeScreen() {
                                 </Chip>
                             ))}
                         </View>
+
+                        <Divider style={{ marginVertical: 16 }} />
+
+                        <View style={styles.cardInfoRow}>
+                            <IconButton icon="account-group-outline" size={20} iconColor={theme.colors.primary} style={{ margin: 0 }} />
+                            <Text style={styles.cardLabel}>基本の人数（レシピの基準）</Text>
+                        </View>
+                        <View style={styles.inputActionRow}>
+                            <RNTextInput
+                                value={baseServings}
+                                onChangeText={setBaseServings}
+                                keyboardType="numeric"
+                                placeholder="1"
+                                style={[styles.nativeInput, { flex: 1 }]}
+                            />
+                            <Button mode="contained" onPress={handleSaveBaseServings} style={styles.inlineActionBtn} compact>更新</Button>
+                        </View>
+
+                        <Divider style={{ marginVertical: 16 }} />
+
+                        <View style={styles.cardInfoRow}>
+                            <IconButton icon="folder-outline" size={20} iconColor={theme.colors.primary} style={{ margin: 0 }} />
+                            <Text style={styles.cardLabel}>カテゴリー (フォルダ分け)</Text>
+                        </View>
+                        <View style={styles.categoryChipRow}>
+                            {CATEGORIES.map(cat => {
+                                const isSelected = recipe?.category === cat.id;
+                                return (
+                                    <Chip
+                                        key={cat.id}
+                                        selected={isSelected}
+                                        onPress={() => handleSelectCategory(cat.id)}
+                                        style={[
+                                            styles.categoryChip,
+                                            isSelected && { backgroundColor: theme.colors.primaryContainer, borderColor: theme.colors.primary }
+                                        ]}
+                                        textStyle={[isSelected && { color: theme.colors.primary, fontWeight: 'bold' }]}
+                                        icon={isSelected ? 'check' : cat.icon}
+                                        mode="outlined"
+                                        compact
+                                    >
+                                        {cat.name}
+                                    </Chip>
+                                );
+                            })}
+                        </View>
                     </Card.Content>
                 </Card>
 
@@ -352,7 +426,7 @@ export default function EditRecipeScreen() {
                                                 <RNTextInput
                                                     defaultValue={ing.quantity.toString()}
                                                     style={styles.inlineIngQtyInput}
-                                                    keyboardType="numeric"
+                                                    keyboardType="decimal-pad"
                                                     onEndEditing={(e) => handleInlineUpdateIngredient(ing, 'quantity', e.nativeEvent.text)}
                                                 />
                                                 <RNTextInput
@@ -445,7 +519,7 @@ export default function EditRecipeScreen() {
                                     key={`ing-qty-${dialogKey}`}
                                     defaultValue={ingredientQuantity}
                                     onChangeText={(text) => setIngredientQuantity(text)}
-                                    keyboardType="numeric"
+                                    keyboardType="decimal-pad"
                                     style={styles.dialogInput}
                                 />
                             </View>
@@ -549,6 +623,8 @@ const styles = StyleSheet.create({
     tagInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
     editTagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
     editTagChip: { backgroundColor: '#F9F7F2', borderColor: '#F2EFE9', borderWidth: 1 },
+    categoryChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+    categoryChip: { marginVertical: 2 },
     inlineIngNameInput: { flex: 2, fontSize: 15, color: '#333', padding: 4, borderRadius: 4, backgroundColor: '#FAFAFA' },
     inlineIngQtyInput: { flex: 1, fontSize: 14, fontWeight: 'bold', color: '#B8860B', padding: 4, borderRadius: 4, backgroundColor: '#FAFAFA', textAlign: 'right' },
     inlineIngUnitInput: { flex: 0.8, fontSize: 13, color: '#666', padding: 4, borderRadius: 4, backgroundColor: '#FAFAFA' },

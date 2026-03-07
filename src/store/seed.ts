@@ -19,7 +19,7 @@ export const seedDemoData = async () => {
     /**
      * 我が家の黄金比ハンバーグ - 改善の系譜 (5世代)
      */
-    const burger = await createRecipe('黄金比ハンバーグ');
+    const burger = await createRecipe('黄金比ハンバーグ', 'official_burger_seed');
     const recipeId = burger.id;
     const v1Id = burger.currentVersionId!;
     const now = new Date().toISOString();

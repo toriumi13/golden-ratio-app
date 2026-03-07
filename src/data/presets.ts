@@ -5,6 +5,7 @@ export interface PresetRecipe {
     name: string;
     description: string;
     category: string;
+    baseServings?: number;
     sections: {
         name: string;
         ingredients: {
@@ -22,6 +23,7 @@ export const PRESET_RECIPES: PresetRecipe[] = [
         name: '究極の肉汁ハンバーグ',
         description: 'ゼラチンパウダーで肉汁を閉じ込めるプロの技。黄金比のソース付き。',
         category: '洋食',
+        baseServings: 2,
         sections: [
             {
                 name: 'タネ (2人前)',
@@ -199,6 +201,7 @@ export const PRESET_RECIPES: PresetRecipe[] = [
         name: '黄金比の唐揚げ',
         description: '醤油2:酒1。冷めてもサクサク、ジューシーな王道の味。',
         category: '和食',
+        baseServings: 2,
         sections: [
             {
                 name: '具材 (2人前)',
@@ -266,6 +269,7 @@ export const PRESET_RECIPES: PresetRecipe[] = [
         name: '鶏南蛮漬けの黄金比',
         description: 'だし3:酢2:醤油1:砂糖1。野菜もたっぷり食べられる絶妙な酸味。',
         category: '和食',
+        baseServings: 2,
         sections: [
             {
                 name: '具材 (2人前)',
@@ -299,6 +303,7 @@ export const PRESET_RECIPES: PresetRecipe[] = [
         name: '至福のパンケーキ',
         description: '粉100gに対して液体2項目で120ml。お店のような厚みを目指す比率。',
         category: 'スイーツ',
+        baseServings: 2,
         sections: [
             {
                 name: '生地 (2〜3枚分)',
