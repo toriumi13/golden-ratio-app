@@ -113,10 +113,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const r = "${recipeId}";
         const v = p.get('versionId');
         const n = p.get('recipeName');
-        let t = "/";
-        if (r && v) t = "/?recipeId=" + r + "&versionId=" + v + (n ? "&recipeName=" + encodeURIComponent(n) : "");
-        else if (r) t = "/?recipeId=" + r + (n ? "&recipeName=" + encodeURIComponent(n) : "");
-        window.location.href = t;
+        const params = new URLSearchParams();
+        if (r) params.set('recipeId', r);
+        if (v) params.set('versionId', v);
+        if (n) params.set('recipeName', n);
+        window.location.href = "/?" + params.toString();
     </script>
 </head>
 <body style="font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background-color: #F9F7F2; padding: 20px; color: #3E2723;">

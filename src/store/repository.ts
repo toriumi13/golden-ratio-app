@@ -189,20 +189,28 @@ export const getRecipeDetails = async (recipeId: string): Promise<Recipe | null>
  * Fetches a public recipe and its specified version.
  * Does not check for ownership, only if isPublic is true.
  */
-export const getPublicRecipeDetails = async (recipeId: string, versionId: string): Promise<Version | null> => {
-    const versionRef = doc(db, 'recipes', recipeId, 'versions', versionId);
-    const vSnap = await getDoc(versionRef);
+export const getPublicRecipeDetails = async (recipeId: string, versionId?: string): Promise<Version | null> => {
+    // 1. Fetch recipe first to check public status and current version
+    const recipeRef = doc(db, 'recipes', recipeId);
+    const rSnap = await getDoc(recipeRef);
+    if (!rSnap.exists()) {
+        throw new Error("レシピが見つかりません。削除された可能性があります。");
+    }
+    const recipeData = rSnap.data() as Recipe;
 
+    // 2. Determine which version to fetch
+    const effectiveVersionId = versionId || recipeData.currentVersionId;
+    if (!effectiveVersionId) return null;
+
+    const versionRef = doc(db, 'recipes', recipeId, 'versions', effectiveVersionId);
+    const vSnap = await getDoc(versionRef);
     if (!vSnap.exists()) return null;
 
     const version = vSnap.data() as Version;
 
-    // Check if the recipe itself is public
-    const recipeRef = doc(db, 'recipes', recipeId);
-    const rSnap = await getDoc(recipeRef);
-    const recipeData = rSnap.data() as Recipe;
-
-    if (!recipeData?.isPublic && !version.isPublic) {
+    // 3. Relaxed Public Check: Allow if either recipe or version is public
+    // This handles cases where version is shared directly or recipe is marked public
+    if (!recipeData.isPublic && !version.isPublic) {
         throw new Error("このレシピは非公開設定になっています。");
     }
 

@@ -87,17 +87,16 @@ export default function HomeScreen() {
                 const vId = params.get('versionId');
                 const rName = params.get('recipeName');
 
-                if (rId && vId) {
+                if (rId) {
                     try {
-                        console.log(`Attempting to import recipe: ${rId}, version: ${vId}`);
-                        const publicVersion = await getPublicRecipeDetails(rId, vId);
+                        console.log(`Attempting to import recipe: ${rId}, version: ${vId || 'latest'}`);
+                        const publicVersion = await getPublicRecipeDetails(rId, vId || undefined);
                         if (publicVersion) {
                             setImportData({
                                 name: rName || "共有されたレシピ",
+                                recipeId: rId,
                                 version: publicVersion
                             });
-                        } else {
-                            console.warn('Public version not found or inaccessible.');
                         }
 
                         // Clear params while preserving other potentially needed ones
@@ -106,6 +105,7 @@ export default function HomeScreen() {
                         window.history.replaceState({}, '', url.toString());
                     } catch (e: any) {
                         console.error('Import error:', e);
+                        // Using alert for web-friendly feedback during handleUrlParams
                         alert(`インポートできませんでした: ${e.message}`);
                     }
                 }
