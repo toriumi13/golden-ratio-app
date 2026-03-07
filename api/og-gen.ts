@@ -13,14 +13,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const { ImageResponse } = await import('@vercel/og');
         console.log('[DEBUG-OG-GEN] @vercel/og loaded');
 
-        // Accessing query params from the req object (standard Node style)
-        const host = (req.headers.host as string) || 'localhost';
-        const protocol = host.includes('localhost') ? 'http' : 'https';
-        const url = new URL(req.url || '/', `${protocol}://${host}`);
-        const name = url.searchParams.get('recipeName') || '黄金比レシピ';
-        const cb = url.searchParams.get('cb') || 'no-cb';
-        console.log(`[DEBUG-OG-GEN] Request URL: ${req.url}`);
-        console.log(`[DEBUG-OG-GEN] Name to render: ${name}, CacheBuster: ${cb}`);
+        // Use req.query for reliable parameter extraction in Vercel Node.js runtime
+        const nameParam = req.query.recipeName;
+        const cbParam = req.query.cb;
+
+        const name = (Array.isArray(nameParam) ? nameParam[0] : nameParam) || '黄金比レシピ';
+        const cb = (Array.isArray(cbParam) ? cbParam[0] : cbParam) || 'no-cb';
+
+        console.log(`[DEBUG-OG-GEN] Request Details - URL: ${req.url}, Query: ${JSON.stringify(req.query)}`);
+        console.log(`[DEBUG-OG-GEN] Name to render: "${name}" (Source: ${nameParam ? 'query' : 'fallback'}), CacheBuster: ${cb}`);
 
         const element = React.createElement(
             'div',

@@ -14,12 +14,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         const host = (req.headers.host as string) || 'golden-ratio-app-zeta.vercel.app';
         const protocol = host.includes('localhost') ? 'http' : 'https';
-        const url = new URL(req.url || '/', `${protocol}://${host}`);
-        const { searchParams } = url;
 
-        const recipeId = searchParams.get('recipeId');
-        const versionId = searchParams.get('versionId');
-        const recipeName = searchParams.get('recipeName');
+        // Use req.query for reliable parameter extraction in Vercel Node.js runtime
+        const recipeId = (Array.isArray(req.query.recipeId) ? req.query.recipeId[0] : req.query.recipeId) as string;
+        const versionId = (Array.isArray(req.query.versionId) ? req.query.versionId[0] : req.query.versionId) as string;
+        const recipeName = (Array.isArray(req.query.recipeName) ? req.query.recipeName[0] : req.query.recipeName) as string;
+
         console.log(`[DEBUG-SHARE] Parsed Params: recipeId=${recipeId}, versionId=${versionId}, recipeName=${recipeName}`);
 
         if (!recipeId) {
