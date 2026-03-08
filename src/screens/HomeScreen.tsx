@@ -82,7 +82,7 @@ export default function HomeScreen() {
                     }
                 }
 
-                // 2. ID-based Import (New) - Handle various parameter combinations
+                // 2. ID-based Import (New)
                 const rId = params.get('recipeId');
                 const vId = params.get('versionId');
                 const rName = params.get('recipeName');
@@ -99,15 +99,24 @@ export default function HomeScreen() {
                             });
                         }
 
-                        // Clear params while preserving other potentially needed ones
+                        // Clear params
                         const url = new URL(window.location.href);
                         ['recipeId', 'versionId', 'recipeName'].forEach(p => url.searchParams.delete(p));
                         window.history.replaceState({}, '', url.toString());
                     } catch (e: any) {
                         console.error('Import error:', e);
-                        // Using alert for web-friendly feedback during handleUrlParams
                         alert(`インポートできませんでした: ${e.message}`);
                     }
+                }
+
+                // 3. Screen-based Navigation (New)
+                const targetScreen = params.get('screen');
+                if (targetScreen === 'Showcase') {
+                    navigation.navigate('Showcase');
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('screen');
+                    window.history.replaceState({}, '', url.toString());
+                    return;
                 }
             }
         };

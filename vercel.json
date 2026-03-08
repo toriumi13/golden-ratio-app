@@ -3,6 +3,10 @@
     "outputDirectory": "dist",
     "rewrites": [
         {
+            "source": "/showcase",
+            "destination": "/api/showcase"
+        },
+        {
             "source": "/r/:recipeId/:versionId",
             "destination": "/api/share?recipeId=:recipeId&versionId=:versionId"
         },
@@ -13,6 +17,10 @@
         {
             "source": "/sitemap.xml",
             "destination": "/api/sitemap"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
         }
     ],
     "headers": [
