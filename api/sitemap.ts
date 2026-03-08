@@ -28,12 +28,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         xml += '    <priority>1.0</priority>\n';
         xml += '  </url>\n';
 
-        // Add Showcase (to be implemented)
+        // Add Showcase
         xml += '  <url>\n';
         xml += `    <loc>${origin}/showcase</loc>\n`;
         xml += '    <changefreq>daily</changefreq>\n';
         xml += '    <priority>0.8</priority>\n';
         xml += '  </url>\n';
+
+        // Add Category Showcases (Advanced SEO)
+        const { CATEGORIES } = require('../src/constants/categories');
+        for (const cat of CATEGORIES) {
+            xml += '  <url>\n';
+            xml += `    <loc>${origin}/showcase?category=${cat.id}</loc>\n`;
+            xml += '    <changefreq>daily</changefreq>\n';
+            xml += '    <priority>0.7</priority>\n';
+            xml += '  </url>\n';
+        }
 
         // Add each public recipe
         for (const recipe of publicRecipes) {

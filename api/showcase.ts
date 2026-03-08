@@ -16,19 +16,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const protocol = host.includes('localhost') ? 'http' : 'https';
         const origin = `${protocol}://${host}`;
 
+        // Parse category parameter
+        const categoryId = (Array.isArray(req.query.category) ? req.query.category[0] : req.query.category) as string;
+        const category = CATEGORIES.find(c => c.id === categoryId);
+
         // Fetch public recipes for static rendering
         const recipesCol = collection(db, 'recipes');
-        const q = query(
+        let q = query(
             recipesCol,
             where("isPublic", "==", true),
             orderBy("createdAt", "desc"),
             limit(50)
         );
+
+        // Apply category filter if valid
+        if (categoryId) {
+            q = query(
+                recipesCol,
+                where("isPublic", "==", true),
+                where("category", "==", categoryId),
+                orderBy("createdAt", "desc"),
+                limit(50)
+            );
+        }
+
         const snapshot = await getDocs(q);
         const publicRecipes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
 
-        const title = "黄金比のショーケース | 公開レシピ一覧";
-        const description = "みんなが共有した最高の黄金比レシピが集まる場所。和食、洋食、中華など、様々なジャンルの配合をチェックしましょう。";
+        let title = "黄金比のショーケース | 公開レシピ一覧";
+        let description = "みんなが共有した最高の黄金比レシピが集まる場所。和食、洋食、中華など、様々なジャンルの配合をチェックしましょう。";
+
+        if (category) {
+            title = `${category.name}の黄金比レシピ一覧 | 黄金比のショーケース`;
+            description = `「${category.name}」カテゴリーの公開レシピ一覧です。プロの配合から家庭の味まで、理想の比率を見つけましょう。`;
+        }
 
         const html = `<!DOCTYPE html>
 <html lang="ja">
@@ -64,6 +85,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     </header>
 
     <main style="max-width: 800px; margin: 0 auto;">
+        ${category ? `
+        <div style="margin-bottom: 20px;">
+            <a href="${origin}/showcase" style="color: #C5A059; text-decoration: none; font-size: 0.9rem;">&laquo; すべてのカテゴリーを見る</a>
+        </div>
+        ` : ''}
         <div style="display: grid; gap: 20px;">
             ${publicRecipes.map(recipe => {
             const category = CATEGORIES.find(c => c.id === recipe.category)?.name || '未分類';

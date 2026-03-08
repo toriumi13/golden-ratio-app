@@ -241,7 +241,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         </div>
         ` : ''}
     </div>
-    <p style="margin-top: 30px; font-size: 0.9rem; color: #8D6E63;">アプリを読み込んでいます...</p>
+    <div style="max-width: 600px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #F2EFE9; font-size: 0.9rem;">
+        <h3 style="color: #8D6E63; font-size: 1rem;">他のレシピも見る</h3>
+        <ul style="list-style: none; padding: 0;">
+            <li style="margin-bottom: 10px;">
+                <a href="${origin}/showcase?category=${recipeData?.category || ''}" style="color: #C5A059; text-decoration: none; font-weight: bold;">
+                    &raquo; ${categoryName}の黄金比一覧
+                </a>
+            </li>
+            <li>
+                <a href="${origin}/showcase" style="color: #C5A059; text-decoration: none;">
+                    &raquo; すべての公開レシピを見る（ショーケース）
+                </a>
+            </li>
+        </ul>
+    </div>
+    <p style="margin-top: 30px; font-size: 0.8rem; color: #8D6E63; opacity: 0.7;">&copy; ${new Date().getFullYear()} Golden Ratio App</p>
 </body>
 </html>`;
 
