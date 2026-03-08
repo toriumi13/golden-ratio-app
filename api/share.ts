@@ -1,6 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../src/store/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { CATEGORIES } from '../src/constants/categories';
 
 // Use standard Node.js runtime for maximum stability
 export const config = {
@@ -32,6 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         let ingredientsText = "";
         let versionData = null;
         let fetchedRecipeName = "";
+        let recipeData: any = null;
 
         console.log(`[DEBUG-SHARE] Fetching Firestore data for recipeId: ${recipeId}`);
         try {
@@ -39,14 +41,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const rRef = doc(db, 'recipes', recipeId);
             const rSnap = await getDoc(rRef);
             if (rSnap.exists()) {
-                const rData = rSnap.data();
-                fetchedRecipeName = rData.name;
+                recipeData = rSnap.data();
+                fetchedRecipeName = recipeData.name;
                 console.log(`[DEBUG-SHARE] Recipe found. Name: ${fetchedRecipeName}`);
             } else {
                 console.log(`[DEBUG-SHARE] Recipe NOT found in Firestore. recipeId: ${recipeId}`);
             }
 
-            // 2. Fetch Version document for ingredients
+            // 2. Fetch Version document for ingredients and steps
             if (versionId) {
                 console.log(`[DEBUG-SHARE] Fetching Version data: ${versionId}`);
                 const vRef = doc(db, 'recipes', recipeId, 'versions', versionId);
@@ -64,6 +66,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } catch (e: any) {
             console.error("[DEBUG-SHARE] Firestore error:", e.message);
         }
+
+        const categoryName = CATEGORIES.find(c => c.id === recipeData?.category)?.name || '未分類';
 
         const name = recipeName || fetchedRecipeName || '黄金比レシピ';
         const description = ingredientsText
@@ -95,9 +99,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 "@type": "Organization",
                 "name": "Golden Ratio App"
             },
+            "recipeCategory": categoryName,
+            "keywords": recipeData?.tags?.join(', ') || '',
             "recipeIngredient": versionData?.sections?.flatMap((s: any) =>
                 s.ingredients?.map((i: any) => `${i.name} ${i.quantity}${i.unit}`)
-            ) || []
+            ) || [],
+            "recipeInstructions": versionData?.steps?.map((step: any, index: number) => ({
+                "@type": "HowToStep",
+                "name": `ステップ ${index + 1}`,
+                "text": step.description,
+                "url": `${shareUrl}#step${index + 1}`
+            })) || []
+        };
+
+        const breadcrumbData = {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+                {
+                    "@type": "ListItem",
+                    "position": 1,
+                    "name": "ホーム",
+                    "item": origin
+                },
+                {
+                    "@type": "ListItem",
+                    "position": 2,
+                    "name": categoryName,
+                    "item": `${origin}/showcase?category=${recipeData?.category || ''}`
+                },
+                {
+                    "@type": "ListItem",
+                    "position": 3,
+                    "name": name,
+                    "item": shareUrl
+                }
+            ]
         };
 
         console.log(`[DEBUG-SHARE] Generating HTML with SEO content`);
@@ -118,6 +155,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     <meta property="og:title" content="${name} の黄金比を確認">
     <meta property="og:description" content="${description}">
     <meta property="og:image" content="${ogImageUrl}">
+    <meta property="og:image:alt" content="${name} の黄金比カード">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:type" content="article">
@@ -135,6 +173,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     <!-- Structured Data -->
     <script type="application/ld+json">
         ${JSON.stringify(structuredData)}
+    </script>
+    <script type="application/ld+json">
+        ${JSON.stringify(breadcrumbData)}
     </script>
 
     <script>
@@ -165,6 +206,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     </li>
                 `).join('')}
             </ul>
+        </div>
+        ` : ''}
+
+        ${versionData?.steps ? `
+        <div style="background: white; padding: 20px; border-radius: 12px; border: 1px solid #F2EFE9; margin-top: 20px;">
+            <h2 style="font-size: 1.2rem; margin-top: 0;">作り方</h2>
+            <ol style="padding-left: 20px;">
+                ${versionData.steps.map((step: any, idx: number) => `
+                    <li id="step${idx + 1}" style="margin-bottom: 15px;">
+                        <p style="margin: 0;">${step.description}</p>
+                    </li>
+                `).join('')}
+            </ol>
         </div>
         ` : ''}
     </div>
