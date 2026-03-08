@@ -16,6 +16,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const host = (req.headers.host as string) || 'golden-ratio-app-zeta.vercel.app';
         const protocol = host.includes('localhost') ? 'http' : 'https';
 
+        // Debug: Log incoming headers (internally for Vercel logs)
+        const userAgent = (req.headers['user-agent'] || '').toLowerCase();
+        const isBot = /bot|google|crawler|spider|robot|crawling|lighthouse|rich results test|structured-data/i.test(userAgent);
+
+        console.log(`[DEBUG-SHARE] UA: ${userAgent}, isBot: ${isBot}`);
+
         // Robust parameter extraction: Try req.query first, then fallback to manual URL parsing
         let recipeId = (Array.isArray(req.query.recipeId) ? req.query.recipeId[0] : req.query.recipeId) as string;
         let versionId = (Array.isArray(req.query.versionId) ? req.query.versionId[0] : req.query.versionId) as string;
@@ -188,10 +194,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ${JSON.stringify(breadcrumbData)}
     </script>
 
+    ${!isBot ? `
     <script>
+        // Only redirect human users to the App shell. Bots (like Google Rich Results Test) stay on this static SEO page.
         const p = new URLSearchParams(window.location.search);
-        const r = "${recipeId}";
-        const v = p.get('versionId');
+        const r = "${recipeId || ''}";
+        const v = p.get('versionId') || "${versionId || ''}";
         const n = p.get('recipeName');
         const params = new URLSearchParams();
         if (r) params.set('recipeId', r);
@@ -199,6 +207,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (n) params.set('recipeName', n);
         window.location.href = "/?" + params.toString();
     </script>
+    ` : '<!-- Redirect skipped for bot (SEO) -->'}
 </head>
 <body style="font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background-color: #F9F7F2; padding: 20px; color: #3E2723;">
     <h1 style="color: #C5A059;">${name}</h1>
@@ -239,6 +248,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log('[DEBUG-SHARE] Sending HTML response...');
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+        res.setHeader('X-SEO-Bot-Detected', isBot.toString());
         res.status(200).send(html);
         console.log('[DEBUG-SHARE] Done');
 
