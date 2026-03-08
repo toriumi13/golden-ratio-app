@@ -21,6 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const q = query(
             recipesCol,
             where("isPublic", "==", true),
+            orderBy("createdAt", "desc"),
             limit(50)
         );
         const snapshot = await getDocs(q);
