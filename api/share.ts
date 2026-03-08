@@ -16,10 +16,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const host = (req.headers.host as string) || 'golden-ratio-app-zeta.vercel.app';
         const protocol = host.includes('localhost') ? 'http' : 'https';
 
-        // Use req.query for reliable parameter extraction in Vercel Node.js runtime
-        const recipeId = (Array.isArray(req.query.recipeId) ? req.query.recipeId[0] : req.query.recipeId) as string;
-        const versionId = (Array.isArray(req.query.versionId) ? req.query.versionId[0] : req.query.versionId) as string;
+        // Robust parameter extraction: Try req.query first, then fallback to manual URL parsing
+        let recipeId = (Array.isArray(req.query.recipeId) ? req.query.recipeId[0] : req.query.recipeId) as string;
+        let versionId = (Array.isArray(req.query.versionId) ? req.query.versionId[0] : req.query.versionId) as string;
         const recipeName = (Array.isArray(req.query.recipeName) ? req.query.recipeName[0] : req.query.recipeName) as string;
+
+        // Fallback: Parse from URL if rewrites didn't populate req.query as expected
+        if (!recipeId && req.url) {
+            const urlParts = req.url.split('?')[0].split('/').filter(Boolean);
+            // Expected path: /r/recipeId or /r/recipeId/versionId
+            if (urlParts[0] === 'r') {
+                recipeId = urlParts[1];
+                versionId = urlParts[2];
+            }
+        }
 
         console.log(`[DEBUG-SHARE] Parsed Params: recipeId=${recipeId}, versionId=${versionId}, recipeName=${recipeName}`);
 
