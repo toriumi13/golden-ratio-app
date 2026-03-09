@@ -342,6 +342,10 @@ export default function HomeScreen() {
                     />
                 )}
                 <Appbar.Action
+                    icon="help-circle-outline"
+                    onPress={() => navigation.navigate('Guide')}
+                />
+                <Appbar.Action
                     icon={auth.currentUser?.isAnonymous ? "account-circle-outline" : "account-check"}
                     onPress={() => setShowLogin(true)}
                 />

@@ -115,7 +115,7 @@ export default function LoginScreen({ onClose }: LoginScreenProps) {
     return (
         <ScrollView contentContainerStyle={[styles.container, !auth.currentUser && { paddingTop: 60 }]}>
             <View style={styles.header}>
-                {(auth.currentUser && (!isAnonymous || onClose)) && (
+                {(auth.currentUser && (!isAnonymous || !!onClose)) && (
                     <IconButton icon="close" onPress={onClose} style={styles.closeButton} />
                 )}
                 <Text variant="headlineMedium" style={styles.title}>

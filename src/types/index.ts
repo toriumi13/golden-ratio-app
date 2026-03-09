@@ -10,6 +10,8 @@ export interface Recipe {
   latestVersionDate?: string;
   tags?: string[];
   category?: string; // Standardized category ID
+  imageUrl?: string; // Main recipe image URL from Firebase Storage
+  likeCount?: number; // Total number of likes for this recipe
   versions?: Version[];
 }
 

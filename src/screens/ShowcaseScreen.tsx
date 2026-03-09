@@ -17,17 +17,18 @@ import {
     Surface,
     Button
 } from 'react-native-paper';
-import { getAllPublicRecipes } from '../store/repository';
+import { getAllPublicRecipes, toggleLike, getLikeStatus } from '../store/repository';
 import { Recipe } from '../types';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { CATEGORIES, getCategoryById } from '../constants/categories';
-import { ScrollView } from 'react-native';
+import { ScrollView, Alert } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
 const ShowcaseScreen = ({ navigation }: any) => {
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
+    const [likedRecipes, setLikedRecipes] = useState<Record<string, boolean>>({});
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const theme = useTheme();
@@ -41,10 +42,38 @@ const ShowcaseScreen = ({ navigation }: any) => {
             const data = await getAllPublicRecipes();
             setRecipes(data);
             setFilteredRecipes(data);
+
+            // Fetch like status for all visible recipes
+            const statusMap: Record<string, boolean> = {};
+            await Promise.all(data.map(async (r) => {
+                statusMap[r.id] = await getLikeStatus(r.id);
+            }));
+            setLikedRecipes(statusMap);
         } catch (error) {
             console.error('Failed to load showcase:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleLike = async (recipeId: string) => {
+        try {
+            const isLikedNow = await toggleLike(recipeId);
+            setLikedRecipes(prev => ({ ...prev, [recipeId]: isLikedNow }));
+
+            // Update recipe like count in the list
+            const updateList = (list: Recipe[]) => list.map(r => {
+                if (r.id === recipeId) {
+                    const currentCount = r.likeCount || 0;
+                    return { ...r, likeCount: isLikedNow ? currentCount + 1 : Math.max(0, currentCount - 1) };
+                }
+                return r;
+            });
+
+            setRecipes(prev => updateList(prev));
+            setFilteredRecipes(prev => updateList(prev));
+        } catch (error: any) {
+            Alert.alert('エラー', 'いいねの更新に失敗しました。ログインしているか確認してください。');
         }
     };
 
@@ -64,6 +93,9 @@ const ShowcaseScreen = ({ navigation }: any) => {
 
     const renderRecipeCard = ({ item }: { item: Recipe }) => {
         const category = getCategoryById(item.category || 'others');
+        const isLiked = likedRecipes[item.id] || false;
+        const likeCount = item.likeCount || 0;
+
         return (
             <Card
                 style={styles.recipeCard}
@@ -93,8 +125,24 @@ const ShowcaseScreen = ({ navigation }: any) => {
                                 </Text>
                             </View>
                         </View>
-                        <View style={styles.badge}>
-                            <Text style={styles.badgeText}>Public</Text>
+                        <View style={styles.actionsColumn}>
+                            <TouchableOpacity
+                                style={styles.likeButton}
+                                onPress={(e) => {
+                                    handleLike(item.id);
+                                }}
+                            >
+                                <MaterialCommunityIcons
+                                    name={isLiked ? "heart" : "heart-outline"}
+                                    size={20}
+                                    color={isLiked ? "#E91E63" : "#8D6E63"}
+                                />
+                                {likeCount > 0 && (
+                                    <Text style={[styles.likeCountText, isLiked && { color: "#E91E63" }]}>
+                                        {likeCount}
+                                    </Text>
+                                )}
+                            </TouchableOpacity>
                         </View>
                     </View>
                 </Card.Content>
@@ -413,6 +461,21 @@ const styles = StyleSheet.create({
         color: '#8D6E63',
         fontWeight: 'bold',
         marginLeft: 6,
+    },
+    actionsColumn: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 12,
+    },
+    likeButton: {
+        alignItems: 'center',
+        padding: 4,
+    },
+    likeCountText: {
+        fontSize: 12,
+        color: '#8D6E63',
+        fontWeight: 'bold',
+        marginTop: 2,
     },
 });
 

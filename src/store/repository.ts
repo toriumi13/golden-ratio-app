@@ -10,13 +10,47 @@ import {
     deleteDoc,
     Timestamp,
     addDoc,
-    where
+    where,
+    increment,
+    runTransaction
 } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
-import { db, auth } from './firebase';
+import { db, auth, storage } from './firebase';
 import { Recipe, Version, Section, Step, Ingredient } from '../types';
 import { checkSubscriptionStatus } from './subscription';
 import { Platform } from 'react-native';
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+
+// ---- Image Upload ----
+export const uploadRecipeImage = async (recipeId: string, uri: string): Promise<string> => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error("Not authenticated");
+
+    // Fetch the image as a blob
+    const response = await fetch(uri);
+    const blob = await response.blob();
+
+    const imageRef = storageRef(storage, `recipes/${recipeId}/main.jpg`);
+    await uploadBytes(imageRef, blob, { contentType: 'image/jpeg' });
+    const downloadURL = await getDownloadURL(imageRef);
+
+    // Save URL to recipe document
+    const recipeDocRef = doc(db, 'recipes', recipeId);
+    await updateDoc(recipeDocRef, { imageUrl: downloadURL });
+
+    return downloadURL;
+};
+
+export const deleteRecipeImage = async (recipeId: string): Promise<void> => {
+    const imageRef = storageRef(storage, `recipes/${recipeId}/main.jpg`);
+    try {
+        await deleteObject(imageRef);
+    } catch (_) {
+        // Ignore if file doesn't exist
+    }
+    const recipeDocRef = doc(db, 'recipes', recipeId);
+    await updateDoc(recipeDocRef, { imageUrl: null });
+};
 
 /**
  * FIRESTORE REPOSITORY
@@ -445,4 +479,45 @@ export const createNewVersionFromExisting = async (
     });
 
     return newVersionId;
+};
+
+/**
+ * LIKES FUNCTIONALITY
+ */
+export const toggleLike = async (recipeId: string): Promise<boolean> => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error("User must be logged in to like a recipe");
+
+    const recipeRef = doc(db, 'recipes', recipeId);
+    const likeRef = doc(db, 'recipes', recipeId, 'likes', userId);
+
+    return await runTransaction(db, async (transaction) => {
+        const likeSnap = await transaction.get(likeRef);
+        const isLiked = likeSnap.exists();
+
+        if (isLiked) {
+            // Remove like
+            transaction.delete(likeRef);
+            transaction.update(recipeRef, {
+                likeCount: increment(-1)
+            });
+            return false;
+        } else {
+            // Add like
+            transaction.set(likeRef, { userId, createdAt: new Date().toISOString() });
+            transaction.update(recipeRef, {
+                likeCount: increment(1)
+            });
+            return true;
+        }
+    });
+};
+
+export const getLikeStatus = async (recipeId: string): Promise<boolean> => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return false;
+
+    const likeRef = doc(db, 'recipes', recipeId, 'likes', userId);
+    const snap = await getDoc(likeRef);
+    return snap.exists();
 };

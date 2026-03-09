@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, ScrollView, StyleSheet, Alert, TextInput as RNTextInput, Platform } from 'react-native';
+import { View, ScrollView, StyleSheet, Alert, TextInput as RNTextInput, Platform, Image } from 'react-native';
 import { Appbar, Text, Card, Divider, Chip, useTheme, Button, Portal, Dialog, IconButton } from 'react-native-paper';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Recipe, Version } from '../types';
 import { db, auth } from '../store/firebase';
-import { getRecipeDetails, createNewVersionFromExisting, getUserProfile, UserProfile, setRecipePublicStatus, createRecipe, addSection, addIngredient, addStep } from '../store/repository';
+import { getRecipeDetails, createNewVersionFromExisting, getUserProfile, UserProfile, setRecipePublicStatus, createRecipe, addSection, addIngredient, addStep, toggleLike, getLikeStatus } from '../store/repository';
 import Paywall from '../components/Paywall';
 import { presentPaywall } from '../store/subscription';
 import QRCode from 'react-native-qrcode-svg';
@@ -39,6 +39,7 @@ export default function RecipeDetailScreen() {
     const [shareUrl, setShareUrl] = useState('');
     const [isImporting, setIsImporting] = useState(false);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+    const [isLiked, setIsLiked] = useState(false);
     const contentRef = React.useRef<View>(null);
 
 
@@ -59,6 +60,20 @@ export default function RecipeDetailScreen() {
         setServings(s => Math.max(1, s + delta));
     };
 
+    const handleToggleLike = async () => {
+        if (!recipe) return;
+        try {
+            const liked = await toggleLike(recipe.id);
+            setIsLiked(liked);
+            setRecipe({
+                ...recipe,
+                likeCount: liked ? (recipe.likeCount || 0) + 1 : Math.max(0, (recipe.likeCount || 0) - 1)
+            });
+        } catch (error: any) {
+            Alert.alert('エラー', 'いいねの更新に失敗しました。ログインしているか確認してください。');
+        }
+    };
+
     const loadData = useCallback(async () => {
         const data = await getRecipeDetails(recipeId);
         setRecipe(data);
@@ -74,6 +89,13 @@ export default function RecipeDetailScreen() {
         }
         const profile = await getUserProfile();
         setUserProfile(profile);
+
+        // Fetch like status
+        if (data) {
+            const liked = await getLikeStatus(data.id);
+            setIsLiked(liked);
+        }
+
         setLoading(false);
     }, [recipeId, selectedVersionId]);
 
@@ -279,6 +301,18 @@ export default function RecipeDetailScreen() {
                         })}
                     />
                 )}
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Appbar.Action
+                        icon={isLiked ? "heart" : "heart-outline"}
+                        iconColor={isLiked ? "#E91E63" : undefined}
+                        onPress={handleToggleLike}
+                    />
+                    {(recipe.likeCount || 0) > 0 && (
+                        <Text style={[styles.appbarLikeCount, isLiked && { color: "#E91E63" }]}>
+                            {recipe.likeCount}
+                        </Text>
+                    )}
+                </View>
                 {!fromShowcase && recipe.userId === auth.currentUser?.uid && (
                     <Appbar.Action
                         icon="share-variant"
@@ -474,6 +508,15 @@ export default function RecipeDetailScreen() {
                         </View>
                     </View>
                 </View>
+                {recipe.imageUrl && (
+                    <View style={styles.recipeImageContainer}>
+                        <Image
+                            source={{ uri: recipe.imageUrl }}
+                            style={styles.recipeImage}
+                            resizeMode="cover"
+                        />
+                    </View>
+                )}
                 {/* Scaler / Servings Control */}
                 <View style={styles.scalerContainer}>
                     <View style={styles.scalerHeader}>
@@ -742,6 +785,13 @@ const styles = StyleSheet.create({
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     appbar: { backgroundColor: '#FFF' },
     appbarTitle: { fontWeight: 'bold', color: '#3E2723', letterSpacing: 0.5 },
+    appbarLikeCount: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#8D6E63',
+        marginLeft: -8,
+        marginRight: 8,
+    },
     scrollContent: { padding: 20, paddingBottom: 100 },
 
     // Timeline
@@ -846,5 +896,15 @@ const styles = StyleSheet.create({
     importButtonLabel: {
         fontSize: 14,
         fontWeight: 'bold',
-    }
+    },
+    recipeImageContainer: {
+        marginHorizontal: 0,
+        marginBottom: 16,
+        borderRadius: 20,
+        overflow: 'hidden',
+    },
+    recipeImage: {
+        width: '100%',
+        height: 220,
+    },
 });

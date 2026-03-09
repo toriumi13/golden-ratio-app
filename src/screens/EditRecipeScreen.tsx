@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, ScrollView, StyleSheet, Alert, TextInput as RNTextInput, Platform } from 'react-native';
+import { View, ScrollView, StyleSheet, Alert, TextInput as RNTextInput, Platform, Image, TouchableOpacity } from 'react-native';
 import { Appbar, Text, Button, Card, IconButton, useTheme, Divider, Portal, Dialog, Checkbox, Surface, Chip } from 'react-native-paper';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Recipe, Section, Step, Ingredient } from '../types';
@@ -7,8 +7,10 @@ import {
     getRecipeDetails, updateRecipeName,
     addSection, updateSection, deleteSection,
     addIngredient, updateIngredient, deleteIngredient,
-    addStep, updateStep, deleteStep, updateRecipeTags, updateRecipeCategory, updateBaseServings
+    addStep, updateStep, deleteStep, updateRecipeTags, updateRecipeCategory, updateBaseServings,
+    uploadRecipeImage, deleteRecipeImage
 } from '../store/repository';
+import * as ImagePicker from 'expo-image-picker';
 import { getVirtualWeight, getRatioWidth } from '../utils/ratio';
 import { CATEGORIES } from '../constants/categories';
 
@@ -23,6 +25,8 @@ export default function EditRecipeScreen() {
     const [tagInput, setTagInput] = useState('');
     const [baseServings, setBaseServings] = useState('1');
     const [loading, setLoading] = useState(true);
+    const [imageUrl, setImageUrl] = useState<string | null>(null);
+    const [isUploadingImage, setIsUploadingImage] = useState(false);
 
     // Dialog & Editing States
     const [showSectionDialog, setShowSectionDialog] = useState(false);
@@ -54,6 +58,7 @@ export default function EditRecipeScreen() {
         const data = await getRecipeDetails(recipeId);
         setRecipe(data);
         setRecipeName(data?.name || '');
+        setImageUrl(data?.imageUrl || null);
 
         // Get baseServings from current version
         const vId = versionId || data?.currentVersionId;
@@ -116,6 +121,43 @@ export default function EditRecipeScreen() {
         await updateBaseServings(recipe.id, currentVersion.id, val);
         Alert.alert('成功', '基本人数を更新しました');
         loadData();
+    };
+
+    const handlePickImage = async () => {
+        if (!recipe) return;
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('権限エラー', '写真へのアクセスを許可してください。');
+            return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 0.8,
+        });
+        if (!result.canceled && result.assets[0]?.uri) {
+            setIsUploadingImage(true);
+            try {
+                const url = await uploadRecipeImage(recipe.id, result.assets[0].uri);
+                setImageUrl(url);
+                Alert.alert('成功', '写真をアップロードしました');
+            } catch (e: any) {
+                Alert.alert('エラー', `写真のアップロードに失敗しました: ${e.message}`);
+            } finally {
+                setIsUploadingImage(false);
+            }
+        }
+    };
+
+    const handleDeleteImage = async () => {
+        if (!recipe) return;
+        try {
+            await deleteRecipeImage(recipe.id);
+            setImageUrl(null);
+        } catch (e: any) {
+            Alert.alert('エラー', `写真の削除に失敗しました: ${e.message}`);
+        }
     };
 
     // --- Section Handlers ---
@@ -351,6 +393,40 @@ export default function EditRecipeScreen() {
                             />
                             <Button mode="contained" onPress={handleSaveRecipeName} style={styles.inlineActionBtn} compact>更新</Button>
                         </View>
+
+                        <Divider style={{ marginVertical: 16 }} />
+
+                        {/* Photo Section */}
+                        <View style={styles.cardInfoRow}>
+                            <IconButton icon="camera-outline" size={20} iconColor={theme.colors.primary} style={{ margin: 0 }} />
+                            <Text style={styles.cardLabel}>料理の写真（1枚）</Text>
+                        </View>
+                        {imageUrl ? (
+                            <View style={styles.imagePreviewContainer}>
+                                <Image source={{ uri: imageUrl }} style={styles.imagePreview} resizeMode="cover" />
+                                <Button
+                                    mode="outlined"
+                                    onPress={handleDeleteImage}
+                                    icon="delete-outline"
+                                    textColor="#B71C1C"
+                                    style={{ marginTop: 8, borderColor: '#FFCDD2' }}
+                                    compact
+                                >
+                                    写真を削除
+                                </Button>
+                            </View>
+                        ) : (
+                            <Button
+                                mode="outlined"
+                                onPress={handlePickImage}
+                                loading={isUploadingImage}
+                                disabled={isUploadingImage}
+                                icon="image-plus"
+                                style={styles.imagePickerBtn}
+                            >
+                                {isUploadingImage ? 'アップロード中...' : '写真を選択する'}
+                            </Button>
+                        )}
 
                         <Divider style={{ marginVertical: 16 }} />
 
@@ -679,4 +755,7 @@ const styles = StyleSheet.create({
     inlineIngNameInput: { flex: 2, fontSize: 15, color: '#333', paddingVertical: 4, paddingHorizontal: 4, borderRadius: 4, backgroundColor: 'transparent', height: 36, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
     inlineIngQtyInput: { flex: 1, fontSize: 14, fontWeight: 'bold', color: '#B8860B', paddingVertical: 4, paddingHorizontal: 4, borderRadius: 4, backgroundColor: 'transparent', height: 36, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
     inlineIngUnitInput: { flex: 0.8, fontSize: 13, color: '#666', paddingVertical: 4, paddingHorizontal: 4, borderRadius: 4, backgroundColor: 'transparent', height: 36, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
+    imagePreviewContainer: { alignItems: 'center', marginVertical: 4 },
+    imagePreview: { width: '100%', height: 180, borderRadius: 12, backgroundColor: '#F5F5F5' },
+    imagePickerBtn: { borderColor: '#B8860B', borderStyle: 'dashed', borderRadius: 12, marginVertical: 4 },
 });

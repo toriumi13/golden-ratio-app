@@ -7,6 +7,7 @@ import EditRecipeScreen from '../screens/EditRecipeScreen';
 import DeltaScreen from '../screens/DeltaScreen';
 
 import ShowcaseScreen from '../screens/ShowcaseScreen';
+import GuideScreen from '../screens/GuideScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -24,6 +25,7 @@ export default function AppNavigator() {
                 <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} options={{ title: 'レシピ詳細' }} />
                 <Stack.Screen name="EditRecipe" component={EditRecipeScreen} options={{ title: 'レシピ編集' }} />
                 <Stack.Screen name="Delta" component={DeltaScreen} options={{ title: '比率の差分' }} />
+                <Stack.Screen name="Guide" component={GuideScreen} options={{ title: '使い方ガイド' }} />
             </Stack.Navigator>
         </NavigationContainer>
     );
