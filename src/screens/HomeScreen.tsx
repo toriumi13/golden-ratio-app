@@ -348,7 +348,7 @@ export default function HomeScreen() {
                     />
                 )}
                 <Appbar.Action
-                    icon="help-circle-outline"
+                    icon="information-outline"
                     onPress={() => navigation.navigate('Guide')}
                 />
                 <Appbar.Action
@@ -384,26 +384,43 @@ export default function HomeScreen() {
                         showsVerticalScrollIndicator={false}
                         ListHeaderComponent={
                             <View style={styles.presetsContainer}>
-                                <TouchableOpacity
-                                    onPress={() => navigation.navigate('Showcase')}
-                                    activeOpacity={0.8}
-                                >
-                                    <Surface style={styles.showcaseBanner} elevation={2}>
-                                        <View style={styles.showcaseContent}>
-                                            <View style={styles.showcaseTextContainer}>
-                                                <View style={styles.showcaseBadge}>
-                                                    <MaterialCommunityIcons name="lightning-bolt" size={10} color="#C5A059" />
-                                                    <Text style={styles.showcaseBadgeText}>Research Highlights</Text>
-                                                </View>
-                                                <Text style={styles.showcaseTitle}>黄金比ショーケース</Text>
-                                                <Text style={styles.showcaseSubtitle}>世界中の「究極の比率」をのぞいてみよう</Text>
+                                <View style={styles.quickActionsRow}>
+                                    <TouchableOpacity
+                                        onPress={() => navigation.navigate('Showcase')}
+                                        activeOpacity={0.8}
+                                        style={styles.quickActionTile}
+                                    >
+                                        <Surface style={[styles.actionBanner, { backgroundColor: '#C5A059' }]} elevation={2}>
+                                            <View style={styles.actionBadge}>
+                                                <MaterialCommunityIcons name="earth" size={12} color="#C5A059" />
+                                                <Text style={styles.actionBadgeText}>Showcase</Text>
                                             </View>
-                                            <View style={styles.showcaseIconWrap}>
-                                                <MaterialCommunityIcons name="earth" size={28} color="#C5A059" />
+                                            <Text style={styles.actionTitle}>ショーケース</Text>
+                                            <Text style={styles.actionSubtitle}>世界中の比率</Text>
+                                            <View style={styles.actionIconWrap}>
+                                                <MaterialCommunityIcons name="chevron-right" size={20} color="rgba(255,255,255,0.6)" />
                                             </View>
-                                        </View>
-                                    </Surface>
-                                </TouchableOpacity>
+                                        </Surface>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        onPress={() => navigation.navigate('Guide')}
+                                        activeOpacity={0.8}
+                                        style={styles.quickActionTile}
+                                    >
+                                        <Surface style={[styles.actionBanner, { backgroundColor: '#4E342E' }]} elevation={2}>
+                                            <View style={[styles.actionBadge, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                                                <MaterialCommunityIcons name="book-open-variant" size={12} color="#FDFCF0" />
+                                                <Text style={[styles.actionBadgeText, { color: '#FDFCF0' }]}>Manual</Text>
+                                            </View>
+                                            <Text style={styles.actionTitle}>使い方ガイド</Text>
+                                            <Text style={styles.actionSubtitle}>研究のコツ</Text>
+                                            <View style={styles.actionIconWrap}>
+                                                <MaterialCommunityIcons name="chevron-right" size={20} color="rgba(255,255,255,0.4)" />
+                                            </View>
+                                        </Surface>
+                                    </TouchableOpacity>
+                                </View>
 
                                 <View style={styles.sectionHeaderRow}>
                                     <Text style={styles.sectionTitle}>定番の黄金比10選</Text>
@@ -866,53 +883,50 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         alignSelf: 'flex-start',
     },
-    showcaseBanner: {
-        backgroundColor: '#C5A059',
-        borderRadius: 20,
-        marginBottom: 24,
-        overflow: 'hidden',
-    },
-    showcaseContent: {
+    quickActionsRow: {
         flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
-        paddingVertical: 20,
+        gap: 12,
+        marginBottom: 24,
     },
-    showcaseTextContainer: {
+    quickActionTile: {
         flex: 1,
     },
-    showcaseTitle: {
-        color: '#FFF',
-        fontSize: 18,
-        fontWeight: 'bold',
-        letterSpacing: 0.5,
+    actionBanner: {
+        borderRadius: 20,
+        height: 120, // Enough height for title + icon
+        padding: 16,
+        justifyContent: 'flex-start',
+        position: 'relative',
+        overflow: 'hidden',
     },
-    showcaseSubtitle: {
-        color: 'rgba(255, 255, 255, 0.8)',
-        fontSize: 12,
+    actionTitle: {
+        color: '#FFF',
+        fontSize: 15,
+        fontWeight: 'bold',
         marginTop: 4,
     },
-    showcaseIconWrap: {
-        backgroundColor: 'rgba(255, 255, 255, 0.4)',
-        width: 52,
-        height: 52,
-        borderRadius: 18,
-        marginLeft: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
+    actionSubtitle: {
+        color: 'rgba(255, 255, 255, 0.7)',
+        fontSize: 10,
+        marginTop: 2,
     },
-    showcaseBadge: {
+    actionIconWrap: {
+        position: 'absolute',
+        bottom: 12,
+        right: 12,
+    },
+    actionBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: 'rgba(255, 255, 255, 0.9)',
         alignSelf: 'flex-start',
-        paddingHorizontal: 8,
+        paddingHorizontal: 6,
         paddingVertical: 2,
-        borderRadius: 8,
-        marginBottom: 8,
+        borderRadius: 6,
+        marginBottom: 4,
     },
-    showcaseBadgeText: {
-        fontSize: 9,
+    actionBadgeText: {
+        fontSize: 8,
         fontWeight: '900',
         color: '#C5A059',
         marginLeft: 4,
