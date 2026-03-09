@@ -117,6 +117,12 @@ export default function HomeScreen() {
                     url.searchParams.delete('screen');
                     window.history.replaceState({}, '', url.toString());
                     return;
+                } else if (targetScreen === 'Guide') {
+                    navigation.navigate('Guide');
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('screen');
+                    window.history.replaceState({}, '', url.toString());
+                    return;
                 }
             }
         };

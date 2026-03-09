@@ -35,6 +35,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         xml += '    <priority>0.8</priority>\n';
         xml += '  </url>\n';
 
+        // Add Guide
+        xml += '  <url>\n';
+        xml += `    <loc>${origin}/guide</loc>\n`;
+        xml += '    <changefreq>weekly</changefreq>\n';
+        xml += '    <priority>0.8</priority>\n';
+        xml += '  </url>\n';
+
         // Add Category Showcases (Advanced SEO)
         const { CATEGORIES } = require('../src/constants/categories');
         for (const cat of CATEGORIES) {

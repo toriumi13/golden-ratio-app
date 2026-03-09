@@ -7,6 +7,10 @@
             "destination": "/api/showcase"
         },
         {
+            "source": "/guide",
+            "destination": "/api/guide"
+        },
+        {
             "source": "/r/:recipeId/:versionId",
             "destination": "/api/share?recipeId=:recipeId&versionId=:versionId"
         },
