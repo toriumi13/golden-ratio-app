@@ -47,15 +47,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const displayName = name || '黄金比レシピ';
         console.log(`[DEBUG-OG-GEN] Rendering Image. Name: "${displayName}", CB: ${cb}, ImageURL: ${!!imageUrl}`);
 
-        const debugLabel = `v2.4-${cb.toString().slice(-4)}`;
+        const debugLabel = `v2.5-${cb.toString().slice(-4)}`;
 
-        // Handle Base64 URL format to pass to ImageResponse
+        // We use the base64 string directly in the <img src> to avoid latency from a second HTTP request
         let resolvedImageUrl = imageUrl;
-        if (imageUrl?.startsWith('data:image')) {
-            // For Vercel OG, serving large Base64 strings directly in the <img src> may sometimes fail or be inefficient.
-            // Since we already created an API, let's use the API endpoint to serve it as a normal image stream.
-            resolvedImageUrl = `${req.headers.host?.includes('localhost') ? 'http' : 'https'}://${req.headers.host}/api/image?recipeId=${recipeId}&cb=${cb}`;
-        }
 
         const element = React.createElement(
             'div',
