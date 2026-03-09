@@ -405,7 +405,7 @@ export default function EditRecipeScreen() {
                         </View>
                         {imageUrl ? (
                             <View style={styles.imagePreviewContainer}>
-                                <Image source={{ uri: imageUrl }} style={styles.imagePreview} resizeMode="cover" />
+                                <Image source={{ uri: imageUrl }} style={styles.imagePreview} resizeMode="contain" />
                                 <Button
                                     mode="outlined"
                                     onPress={handleDeleteImage}

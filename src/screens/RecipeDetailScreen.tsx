@@ -513,7 +513,7 @@ export default function RecipeDetailScreen() {
                         <Image
                             source={{ uri: recipe.imageUrl }}
                             style={styles.recipeImage}
-                            resizeMode="cover"
+                            resizeMode="contain"
                         />
                     </View>
                 )}
