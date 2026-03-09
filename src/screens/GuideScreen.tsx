@@ -91,6 +91,19 @@ const GuideScreen = ({ navigation }: any) => {
                             レシピを直接書き換えるのではなく「新しいバージョン」を作成しましょう。
                             過去の配合と今の配合を比較（デルタ表示）し、**差分（何が変わったか）**を自動で分かりやすく表示します。どう味が進化したかを一目で追跡できます。
                         </Text>
+                        <View style={styles.diffMockup}>
+                            <View style={styles.diffRow}>
+                                <Text style={styles.diffName}>砂糖</Text>
+                                <View style={styles.diffValueContainer}>
+                                    <Text style={styles.diffValueOld}>15g</Text>
+                                    <MaterialCommunityIcons name="arrow-right" size={12} color="#9E9E9E" />
+                                    <View style={styles.diffValueNewContainer}>
+                                        <Text style={styles.diffValueNew}>10g</Text>
+                                        <Text style={styles.diffChangeTag}>-5g</Text>
+                                    </View>
+                                </View>
+                            </View>
+                        </View>
                     </Card.Content>
                 </Card>
 
@@ -226,6 +239,53 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         paddingHorizontal: 32,
         backgroundColor: '#C5A059',
+    },
+    diffMockup: {
+        backgroundColor: '#F8F9FA',
+        borderRadius: 12,
+        padding: 12,
+        marginTop: 4,
+        borderWidth: 1,
+        borderColor: '#EEE',
+    },
+    diffRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    diffName: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#4E342E',
+    },
+    diffValueContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    diffValueOld: {
+        fontSize: 12,
+        color: '#9E9E9E',
+        textDecorationLine: 'line-through',
+    },
+    diffValueNewContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#E8F5E9',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+    },
+    diffValueNew: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: '#2E7D32',
+    },
+    diffChangeTag: {
+        fontSize: 10,
+        color: '#2E7D32',
+        marginLeft: 4,
+        fontWeight: 'bold',
     },
 });
 

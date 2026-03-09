@@ -351,8 +351,9 @@ export default function HomeScreen() {
                     mode="text"
                     onPress={() => setShowLogin(true)}
                     icon={auth.currentUser?.isAnonymous ? "account-circle-outline" : "account-check"}
-                    labelStyle={{ fontSize: 13, fontWeight: 'bold' }}
+                    labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
                     textColor={theme.colors.primary}
+                    contentStyle={{ flexDirection: 'row-reverse', height: 48 }}
                 >
                     ログイン
                 </Button>
