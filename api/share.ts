@@ -95,7 +95,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const origin = `${protocol}://${host}`;
         // Pass the already fetched name to avoid redundant DB hits in og-gen (Optimization for crawlers)
         const cb = Date.now();
-        const ogImageUrl = recipeData?.imageUrl || `${origin}/api/og-gen?recipeName=${encodeURIComponent(name)}&recipeId=${recipeId}&versionId=${versionId || ''}&cb=${cb}`;
+        // Base64 images are too large for og:image tags and often rejected by crawlers. Fall back to /api/og-gen.
+        const isBase64 = recipeData?.imageUrl?.startsWith('data:image');
+        const ogImageUrl = (!isBase64 && recipeData?.imageUrl)
+            ? recipeData.imageUrl
+            : `${origin}/api/og-gen?recipeName=${encodeURIComponent(name)}&recipeId=${recipeId}&versionId=${versionId || ''}&cb=${cb}`;
 
         const shareUrl = versionId
             ? `${origin}/r/${recipeId}/${versionId}`

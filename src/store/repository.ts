@@ -15,39 +15,24 @@ import {
     runTransaction
 } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
-import { db, auth, storage } from './firebase';
+import { db, auth } from './firebase';
 import { Recipe, Version, Section, Step, Ingredient } from '../types';
 import { checkSubscriptionStatus } from './subscription';
 import { Platform } from 'react-native';
-import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
-// ---- Image Upload ----
-export const uploadRecipeImage = async (recipeId: string, uri: string): Promise<string> => {
+// ---- Image Upload (Base64 for Free Tier) ----
+export const uploadRecipeImage = async (recipeId: string, base64Uri: string): Promise<string> => {
     const userId = auth.currentUser?.uid;
     if (!userId) throw new Error("Not authenticated");
 
-    // Fetch the image as a blob
-    const response = await fetch(uri);
-    const blob = await response.blob();
-
-    const imageRef = storageRef(storage, `recipes/${recipeId}/main.jpg`);
-    await uploadBytes(imageRef, blob, { contentType: 'image/jpeg' });
-    const downloadURL = await getDownloadURL(imageRef);
-
-    // Save URL to recipe document
+    // Save Base64 string directly to recipe document
     const recipeDocRef = doc(db, 'recipes', recipeId);
-    await updateDoc(recipeDocRef, { imageUrl: downloadURL });
+    await updateDoc(recipeDocRef, { imageUrl: base64Uri });
 
-    return downloadURL;
+    return base64Uri;
 };
 
 export const deleteRecipeImage = async (recipeId: string): Promise<void> => {
-    const imageRef = storageRef(storage, `recipes/${recipeId}/main.jpg`);
-    try {
-        await deleteObject(imageRef);
-    } catch (_) {
-        // Ignore if file doesn't exist
-    }
     const recipeDocRef = doc(db, 'recipes', recipeId);
     await updateDoc(recipeDocRef, { imageUrl: null });
 };

@@ -134,16 +134,18 @@ export default function EditRecipeScreen() {
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             aspect: [4, 3],
-            quality: 0.8,
+            quality: 0.3, // Heavy compression for Firestore
+            base64: true, // Returns base64 string
         });
-        if (!result.canceled && result.assets[0]?.uri) {
+        if (!result.canceled && result.assets[0]?.base64) {
             setIsUploadingImage(true);
             try {
-                const url = await uploadRecipeImage(recipe.id, result.assets[0].uri);
+                const base64Uri = `data:image/jpeg;base64,${result.assets[0].base64}`;
+                const url = await uploadRecipeImage(recipe.id, base64Uri);
                 setImageUrl(url);
-                Alert.alert('成功', '写真をアップロードしました');
+                Alert.alert('成功', '写真を保存しました（データ圧縮モード）');
             } catch (e: any) {
-                Alert.alert('エラー', `写真のアップロードに失敗しました: ${e.message}`);
+                Alert.alert('エラー', `写真の保存に失敗しました: ${e.message}`);
             } finally {
                 setIsUploadingImage(false);
             }
