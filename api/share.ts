@@ -95,11 +95,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const origin = `${protocol}://${host}`;
         // Pass the already fetched name to avoid redundant DB hits in og-gen (Optimization for crawlers)
         const cb = Date.now();
-        // Base64 images are too large for og:image tags and often rejected by crawlers. Fall back to /api/og-gen.
+        // Base64 images are too large for og:image tags and often rejected by crawlers. 
+        // We serve them via /api/image instead.
         const isBase64 = recipeData?.imageUrl?.startsWith('data:image');
-        const ogImageUrl = (!isBase64 && recipeData?.imageUrl)
-            ? recipeData.imageUrl
-            : `${origin}/api/og-gen?recipeName=${encodeURIComponent(name)}&recipeId=${recipeId}&versionId=${versionId || ''}&cb=${cb}`;
+
+        // Determine the OGP image URL
+        let ogImageUrl = `${origin}/api/og-gen?recipeName=${encodeURIComponent(name)}&recipeId=${recipeId}&versionId=${versionId || ''}&cb=${cb}`;
+        if (isBase64) {
+            ogImageUrl = `${origin}/api/image?recipeId=${recipeId}&cb=${cb}`;
+        } else if (recipeData?.imageUrl) {
+            ogImageUrl = recipeData.imageUrl; // e.g. legacy Firebase Storage URL
+        }
 
         const shareUrl = versionId
             ? `${origin}/r/${recipeId}/${versionId}`
