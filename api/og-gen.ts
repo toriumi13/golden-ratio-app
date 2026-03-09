@@ -47,10 +47,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const displayName = name || '黄金比レシピ';
         console.log(`[DEBUG-OG-GEN] Rendering Image. Name: "${displayName}", CB: ${cb}, ImageURL: ${!!imageUrl}`);
 
-        const debugLabel = `v2.5-${cb.toString().slice(-4)}`;
+        const debugLabel = `v2.6-${cb.toString().slice(-4)}`;
 
-        // We use the base64 string directly in the <img src> to avoid latency from a second HTTP request
+        // Handle Base64 URL format to pass to ImageResponse
+        // Passing large base64 strings directly can cause "Offset is outside the bounds of the DataView" errors
         let resolvedImageUrl = imageUrl;
+        if (imageUrl?.startsWith('data:image')) {
+            resolvedImageUrl = `${req.headers.host?.includes('localhost') ? 'http' : 'https'}://${req.headers.host}/api/image?recipeId=${recipeId}&cb=${cb}`;
+        }
 
         const element = React.createElement(
             'div',

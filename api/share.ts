@@ -100,12 +100,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const isBase64 = recipeData?.imageUrl?.startsWith('data:image');
 
         // Determine the OGP image URL
-        let ogImageUrl = `${origin}/api/og-gen?recipeName=${encodeURIComponent(name)}&recipeId=${recipeId}&versionId=${versionId || ''}&cb=${cb}`;
-        if (isBase64) {
-            ogImageUrl = `${origin}/api/image?recipeId=${recipeId}&cb=${cb}`;
-        } else if (recipeData?.imageUrl) {
-            ogImageUrl = recipeData.imageUrl; // e.g. legacy Firebase Storage URL
-        }
+        // We always use api/og-gen now, which handles the split layout (image + card) internally.
+        const ogImageUrl = `${origin}/api/og-gen?recipeName=${encodeURIComponent(name)}&recipeId=${recipeId}&versionId=${versionId || ''}&cb=${cb}`;
 
         const shareUrl = versionId
             ? `${origin}/r/${recipeId}/${versionId}`
