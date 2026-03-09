@@ -347,14 +347,15 @@ export default function HomeScreen() {
                         onPress={() => presentCustomerCenter()}
                     />
                 )}
-                <Appbar.Action
-                    icon="information-outline"
-                    onPress={() => navigation.navigate('Guide')}
-                />
-                <Appbar.Action
-                    icon={auth.currentUser?.isAnonymous ? "account-circle-outline" : "account-check"}
+                <Button
+                    mode="text"
                     onPress={() => setShowLogin(true)}
-                />
+                    icon={auth.currentUser?.isAnonymous ? "account-circle-outline" : "account-check"}
+                    labelStyle={{ fontSize: 13, fontWeight: 'bold' }}
+                    textColor={theme.colors.primary}
+                >
+                    ログイン
+                </Button>
             </Appbar.Header>
 
             {recipes.length === 0 ? (
