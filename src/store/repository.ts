@@ -203,10 +203,22 @@ export const getRecipeDetails = async (recipeId: string): Promise<Recipe | null>
 
     // Fetch versions
     const versionsCol = collection(db, 'recipes', recipeId, 'versions');
-    const vQuery = query(versionsCol, orderBy('createdAt', 'desc'));
+    // Temporarily remove orderBy to avoid composite index requirement
+    const vQuery = query(versionsCol);
+    
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert("[DEBUG-REPO] versions取得開始. ID: " + recipeId);
+    }
     const vSnap = await getDocs(vQuery);
 
-    recipe.versions = vSnap.docs.map(vDoc => vDoc.data() as Version);
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert("[DEBUG-REPO] versions取得完了. Found: " + vSnap.docs.length);
+    }
+
+    // Sort in memory DESC by createdAt
+    recipe.versions = vSnap.docs
+        .map(vDoc => vDoc.data() as Version)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return recipe;
 };

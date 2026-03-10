@@ -75,28 +75,43 @@ export default function RecipeDetailScreen() {
     };
 
     const loadData = useCallback(async () => {
-        const data = await getRecipeDetails(recipeId);
-        setRecipe(data);
-        if (data && data.versions && data.versions.length > 0) {
-            const vId = selectedVersionId || data.currentVersionId;
-            const current = data.versions.find(v => v.id === vId) || data.versions[0];
-            if (!selectedVersionId) {
-                setSelectedVersionId(current.id);
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            window.alert("[DEBUG-DETAIL] loadData開始. ID: " + recipeId);
+        }
+        try {
+            const data = await getRecipeDetails(recipeId);
+            setRecipe(data);
+            if (data && data.versions && data.versions.length > 0) {
+                const vId = selectedVersionId || data.currentVersionId;
+                const current = data.versions.find(v => v.id === vId) || data.versions[0];
+                if (!selectedVersionId) {
+                    setSelectedVersionId(current.id);
+                }
+                setServings(current.baseServings || 1);
+                setIsStandardScaler(false);
+                setScalerRelativeFactor(1);
             }
-            setServings(current.baseServings || 1);
-            setIsStandardScaler(false);
-            setScalerRelativeFactor(1);
-        }
-        const profile = await getUserProfile();
-        setUserProfile(profile);
+            const profile = await getUserProfile();
+            setUserProfile(profile);
 
-        // Fetch like status
-        if (data) {
-            const liked = await getLikeStatus(data.id);
-            setIsLiked(liked);
+            // Fetch like status
+            if (data) {
+                const liked = await getLikeStatus(data.id);
+                setIsLiked(liked);
+            }
+            if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                window.alert("[DEBUG-DETAIL] loadData完了");
+            }
+        } catch (e: any) {
+            console.error("[DETAIL] loadData error:", e);
+            const errMsg = `レシピ詳細の読み込みに失敗しました: ${e.message}`;
+            if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                window.alert(errMsg);
+            }
+            Alert.alert("エラー", errMsg);
+        } finally {
+            setLoading(false);
         }
-
-        setLoading(false);
     }, [recipeId, selectedVersionId]);
 
     useFocusEffect(
