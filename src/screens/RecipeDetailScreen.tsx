@@ -75,9 +75,6 @@ export default function RecipeDetailScreen() {
     };
 
     const loadData = useCallback(async () => {
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-            window.alert("[DEBUG-DETAIL] loadData開始. ID: " + recipeId);
-        }
         try {
             const data = await getRecipeDetails(recipeId);
             setRecipe(data);
@@ -99,16 +96,9 @@ export default function RecipeDetailScreen() {
                 const liked = await getLikeStatus(data.id);
                 setIsLiked(liked);
             }
-            if (Platform.OS === 'web' && typeof window !== 'undefined') {
-                window.alert("[DEBUG-DETAIL] loadData完了");
-            }
         } catch (e: any) {
             console.error("[DETAIL] loadData error:", e);
-            const errMsg = `レシピ詳細の読み込みに失敗しました: ${e.message}`;
-            if (Platform.OS === 'web' && typeof window !== 'undefined') {
-                window.alert(errMsg);
-            }
-            Alert.alert("エラー", errMsg);
+            Alert.alert("エラー", `レシピ詳細の読み込みに失敗しました: ${e.message}`);
         } finally {
             setLoading(false);
         }

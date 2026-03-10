@@ -206,14 +206,7 @@ export const getRecipeDetails = async (recipeId: string): Promise<Recipe | null>
     // Temporarily remove orderBy to avoid composite index requirement
     const vQuery = query(versionsCol);
     
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        window.alert("[DEBUG-REPO] versions取得開始. ID: " + recipeId);
-    }
     const vSnap = await getDocs(vQuery);
-
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        window.alert("[DEBUG-REPO] versions取得完了. Found: " + vSnap.docs.length);
-    }
 
     // Sort in memory DESC by createdAt
     recipe.versions = vSnap.docs
