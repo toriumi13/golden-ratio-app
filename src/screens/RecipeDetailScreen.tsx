@@ -60,6 +60,8 @@ export default function RecipeDetailScreen() {
         setServings(s => Math.max(1, s + delta));
     };
 
+    const currentVersion = recipe?.versions?.find(v => v.id === selectedVersionId) || recipe?.versions?.[0];
+
     const handleToggleLike = async () => {
         if (!recipe) return;
         try {
@@ -192,10 +194,17 @@ export default function RecipeDetailScreen() {
     };
 
     const handleShare = async () => {
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            window.alert("[DEBUG-SHARE] handleShare開始. Recipe: " + !!recipe + ", Version: " + !!currentVersion);
+        }
         if (!recipe || !currentVersion) return;
 
         // Strictly prevent sharing if it's a copy (has originRecipeId)
         const isCopy = recipe.originRecipeId && recipe.originRecipeId !== "" && recipe.originRecipeId !== "null";
+        
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            window.alert("[DEBUG-SHARE] isCopy: " + isCopy + " (" + recipe.originRecipeId + ")");
+        }
 
         if (isCopy) {
             const message = 'このレシピは他の方の研究結果を参考にしたものです。ショーケースへの公開や外部への共有は、あなた自身がゼロから作成した「独自のオリジナリティある研究ノート」のみに制限されています。\n\n自ら発見した究極の比率を記録して、世界に発信しましょう！';
@@ -218,6 +227,9 @@ export default function RecipeDetailScreen() {
             // Clean path-based URL (/r/recipeId/versionId)
             const url = `${origin}/r/${recipe.id}/${currentVersion.id}`;
             setShareUrl(url);
+            if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                window.alert("[DEBUG-SHARE] ダイアログ表示直前. URL: " + url);
+            }
             setShowShareDialog(true);
         } catch (error) {
             console.error('Share failed:', error);
@@ -277,8 +289,6 @@ export default function RecipeDetailScreen() {
             </View>
         );
     }
-
-    const currentVersion = recipe.versions?.find(v => v.id === selectedVersionId) || recipe.versions?.[0];
 
     // Use parentVersionId or fallback to chronological order
     const getParentVersion = (v: Version) => {

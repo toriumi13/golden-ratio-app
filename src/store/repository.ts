@@ -249,11 +249,25 @@ export const getPublicRecipeDetails = async (recipeId: string, versionId?: strin
 };
 
 export const setRecipePublicStatus = async (recipeId: string, versionId: string, isPublic: boolean): Promise<void> => {
-    const recipeRef = doc(db, 'recipes', recipeId);
-    const versionRef = doc(db, 'recipes', recipeId, 'versions', versionId);
+    try {
+        const recipeRef = doc(db, 'recipes', recipeId);
+        const versionRef = doc(db, 'recipes', recipeId, 'versions', versionId);
 
-    await updateDoc(recipeRef, { isPublic });
-    await updateDoc(versionRef, { isPublic });
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            window.alert("[DEBUG-REPO] Public設定更新開始: " + isPublic);
+        }
+        await updateDoc(recipeRef, { isPublic });
+        await updateDoc(versionRef, { isPublic });
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            window.alert("[DEBUG-REPO] Public設定更新完了");
+        }
+    } catch (e: any) {
+        console.error("[REPO] setRecipePublicStatus error:", e);
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            window.alert("[DEBUG-REPO] Public設定更新失敗: " + e.message);
+        }
+        throw e;
+    }
 };
 
 /**
@@ -488,26 +502,41 @@ export const toggleLike = async (recipeId: string): Promise<boolean> => {
     const recipeRef = doc(db, 'recipes', recipeId);
     const likeRef = doc(db, 'recipes', recipeId, 'likes', userId);
 
-    return await runTransaction(db, async (transaction) => {
-        const likeSnap = await transaction.get(likeRef);
-        const isLiked = likeSnap.exists();
-
-        if (isLiked) {
-            // Remove like
-            transaction.delete(likeRef);
-            transaction.update(recipeRef, {
-                likeCount: increment(-1)
-            });
-            return false;
-        } else {
-            // Add like
-            transaction.set(likeRef, { userId, createdAt: new Date().toISOString() });
-            transaction.update(recipeRef, {
-                likeCount: increment(1)
-            });
-            return true;
+    try {
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            window.alert("[DEBUG-REPO] Like トランザクション開始");
         }
-    });
+        const result = await runTransaction(db, async (transaction) => {
+            const likeSnap = await transaction.get(likeRef);
+            const isLiked = likeSnap.exists();
+
+            if (isLiked) {
+                // Remove like
+                transaction.delete(likeRef);
+                transaction.update(recipeRef, {
+                    likeCount: increment(-1)
+                });
+                return false;
+            } else {
+                // Add like
+                transaction.set(likeRef, { userId, createdAt: new Date().toISOString() });
+                transaction.update(recipeRef, {
+                    likeCount: increment(1)
+                });
+                return true;
+            }
+        });
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            window.alert("[DEBUG-REPO] Like トランザクション完了: " + result);
+        }
+        return result;
+    } catch (e: any) {
+        console.error("[REPO] toggleLike error:", e);
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            window.alert("[DEBUG-REPO] Like 失敗: " + e.message);
+        }
+        throw e;
+    }
 };
 
 export const getLikeStatus = async (recipeId: string): Promise<boolean> => {
@@ -515,6 +544,11 @@ export const getLikeStatus = async (recipeId: string): Promise<boolean> => {
     if (!userId) return false;
 
     const likeRef = doc(db, 'recipes', recipeId, 'likes', userId);
-    const snap = await getDoc(likeRef);
-    return snap.exists();
+    try {
+        const snap = await getDoc(likeRef);
+        return snap.exists();
+    } catch (e: any) {
+        console.error("[REPO] getLikeStatus error:", e);
+        return false;
+    }
 };
