@@ -151,18 +151,26 @@ export const createRecipe = async (name: string, originRecipeId?: string, baseSe
 };
 
 export const getRecipes = async (): Promise<Recipe[]> => {
-    const userId = auth.currentUser?.uid;
-    if (!userId) return [];
+    try {
+        const userId = auth.currentUser?.uid;
+        if (!userId) {
+            console.log("[DEBUG-REPO] getRecipes: No userId found");
+            return [];
+        }
 
-    const recipesCol = collection(db, 'recipes');
-    const q = query(
-        recipesCol,
-        where("userId", "==", userId),
-        orderBy('createdAt', 'desc')
-    );
-    const snapshot = await getDocs(q);
+        const recipesCol = collection(db, 'recipes');
+        const q = query(
+            recipesCol,
+            where("userId", "==", userId),
+            orderBy('createdAt', 'desc')
+        );
+        const snapshot = await getDocs(q);
 
-    return snapshot.docs.map(doc => doc.data() as Recipe);
+        return snapshot.docs.map(doc => doc.data() as Recipe);
+    } catch (e: any) {
+        console.error("[DEBUG-REPO] getRecipes error:", e);
+        throw e;
+    }
 };
 
 export const deleteRecipe = async (recipeId: string): Promise<void> => {

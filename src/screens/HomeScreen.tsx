@@ -33,15 +33,20 @@ export default function HomeScreen() {
 
 
     const loadRecipes = async () => {
-        const data = await getRecipes();
-        setRecipes(data);
+        try {
+            const data = await getRecipes();
+            setRecipes(data);
 
-        // Extract unique tags
-        const tags = new Set<string>();
-        data.forEach(r => {
-            r.tags?.forEach(t => tags.add(t));
-        });
-        setAllTags(Array.from(tags).sort());
+            // Extract unique tags
+            const tags = new Set<string>();
+            data.forEach(r => {
+                r.tags?.forEach(t => tags.add(t));
+            });
+            setAllTags(Array.from(tags).sort());
+        } catch (e: any) {
+            console.error("[DEBUG-HOME] loadRecipes error:", e);
+            Alert.alert("エラー", `レシピの読み込みに失敗しました: ${e.message}`);
+        }
     };
 
     // Listen for auth state changes to refresh data
