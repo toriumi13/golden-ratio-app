@@ -158,7 +158,6 @@ export const getRecipes = async (): Promise<Recipe[]> => {
             return [];
         }
 
-        console.log("[DEBUG-REPO] getRecipes: Fetching for userId:", userId);
         const recipesCol = collection(db, 'recipes');
         // Temporarily remove orderBy to avoid composite index requirement for diagnosis
         const q = query(
@@ -167,7 +166,15 @@ export const getRecipes = async (): Promise<Recipe[]> => {
             // orderBy('createdAt', 'desc')
         );
         const snapshot = await getDocs(q);
-        console.log(`[DEBUG-REPO] getRecipes: Found ${snapshot.docs.length} recipes`);
+        
+        // Show result as alert for easier debugging on web
+        if (Platform.OS === 'web') {
+            const msg = `[DEBUG] UID: ${userId}\nFound: ${snapshot.docs.length} recipes`;
+            console.log(msg);
+            if (typeof window !== 'undefined') {
+                window.alert(msg);
+            }
+        }
 
         // Sort in memory instead
         return snapshot.docs
