@@ -1,6 +1,26 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../src/store/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import * as admin from 'firebase-admin';
+
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+    try {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
+        if (serviceAccount.project_id) {
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount),
+            });
+        } else {
+            // Fallback for local development
+            admin.initializeApp({
+                projectId: 'golden-raito-app',
+            });
+        }
+    } catch (e) {
+        console.error('[DEBUG-IMAGE] Firebase Admin init error:', e);
+    }
+}
+
+const db = admin.firestore();
 
 export const config = {
     runtime: 'nodejs',
@@ -14,14 +34,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-        const rRef = doc(db, 'recipes', recipeId);
-        const rSnap = await getDoc(rRef);
+        const rSnap = await db.collection('recipes').doc(recipeId).get();
 
-        if (!rSnap.exists()) {
+        if (!rSnap.exists) {
             return res.status(404).send('Recipe not found');
         }
 
         const data = rSnap.data();
+        if (!data) {
+            return res.status(404).send('No data found');
+        }
         const imageUrl = data.imageUrl;
 
         if (!imageUrl || !imageUrl.startsWith('data:image/')) {

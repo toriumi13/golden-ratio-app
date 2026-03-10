@@ -1,7 +1,27 @@
 import React from 'react';
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../src/store/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import * as admin from 'firebase-admin';
+
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+    try {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
+        if (serviceAccount.project_id) {
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount),
+            });
+        } else {
+            // Fallback for local development
+            admin.initializeApp({
+                projectId: 'golden-raito-app',
+            });
+        }
+    } catch (e) {
+        console.error('[DEBUG-OG-GEN] Firebase Admin init error:', e);
+    }
+}
+
+const db = admin.firestore();
 
 // Use Node.js runtime
 export const config = {
@@ -28,13 +48,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (recipeId) {
             console.log(`[DEBUG-OG-GEN] Fetching from Firestore for recipeId: ${recipeId}`);
             try {
-                const rRef = doc(db, 'recipes', recipeId);
-                const rSnap = await getDoc(rRef);
-                if (rSnap.exists()) {
+                const rSnap = await db.collection('recipes').doc(recipeId).get();
+                if (rSnap.exists) {
                     const data = rSnap.data();
-                    if (!name) name = data.name;
-                    imageUrl = data.imageUrl;
-                    console.log(`[DEBUG-OG-GEN] Fetched from DB: ${name}, hasImage: ${!!imageUrl}`);
+                    if (data) {
+                        if (!name) name = data.name;
+                        imageUrl = data.imageUrl;
+                        console.log(`[DEBUG-OG-GEN] Fetched from DB: ${name}, hasImage: ${!!imageUrl}`);
+                    }
                 }
             } catch (fsError: any) {
                 console.error(`[DEBUG-OG-GEN] Firestore error: ${fsError.message}`);
@@ -159,6 +180,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                                             padding: '8px 24px',
                                             borderRadius: '50px',
                                             fontWeight: 'extrabold',
+                                            display: 'flex',
                                         },
                                     },
                                     '黄金比を確認する'

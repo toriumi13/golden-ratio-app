@@ -1,7 +1,27 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../src/store/firebase';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import * as admin from 'firebase-admin';
 import { CATEGORIES } from '../src/constants/categories';
+
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+    try {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
+        if (serviceAccount.project_id) {
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount),
+            });
+        } else {
+            // Fallback for local development
+            admin.initializeApp({
+                projectId: 'golden-raito-app',
+            });
+        }
+    } catch (e) {
+        console.error('[DEBUG-SHOWCASE] Firebase Admin init error:', e);
+    }
+}
+
+const db = admin.firestore();
 
 export const config = {
     runtime: 'nodejs',
@@ -21,26 +41,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const category = CATEGORIES.find(c => c.id === categoryId);
 
         // Fetch public recipes for static rendering
-        const recipesCol = collection(db, 'recipes');
-        let q = query(
-            recipesCol,
-            where("isPublic", "==", true),
-            orderBy("createdAt", "desc"),
-            limit(50)
-        );
+        let recipesQuery = db.collection('recipes')
+            .where("isPublic", "==", true)
+            .orderBy("createdAt", "desc")
+            .limit(50);
 
         // Apply category filter if valid
         if (categoryId) {
-            q = query(
-                recipesCol,
-                where("isPublic", "==", true),
-                where("category", "==", categoryId),
-                orderBy("createdAt", "desc"),
-                limit(50)
-            );
+            recipesQuery = db.collection('recipes')
+                .where("isPublic", "==", true)
+                .where("category", "==", categoryId)
+                .orderBy("createdAt", "desc")
+                .limit(50);
         }
 
-        const snapshot = await getDocs(q);
+        const snapshot = await recipesQuery.get();
         const publicRecipes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
 
         let title = "黄金比のショーケース | 公開レシピ一覧";

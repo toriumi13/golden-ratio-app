@@ -1,7 +1,27 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../src/store/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import * as admin from 'firebase-admin';
 import { CATEGORIES } from '../src/constants/categories';
+
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+    try {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
+        if (serviceAccount.project_id) {
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount),
+            });
+        } else {
+            // Fallback for local development or if env is not set
+            admin.initializeApp({
+                projectId: 'golden-raito-app',
+            });
+        }
+    } catch (e) {
+        console.error('[DEBUG-SHARE] Firebase Admin init error:', e);
+    }
+}
+
+const db = admin.firestore();
 
 // Use standard Node.js runtime for maximum stability
 export const config = {
@@ -47,16 +67,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // Fetch actual recipe data for SEO
         let ingredientsText = "";
-        let versionData = null;
+        let versionData: any = null;
         let fetchedRecipeName = "";
         let recipeData: any = null;
 
         console.log(`[DEBUG-SHARE] Fetching Firestore data for recipeId: ${recipeId}`);
         try {
             // 1. Fetch Recipe document to get the correct name
-            const rRef = doc(db, 'recipes', recipeId);
-            const rSnap = await getDoc(rRef);
-            if (rSnap.exists()) {
+            const rSnap = await db.collection('recipes').doc(recipeId).get();
+            if (rSnap.exists) {
                 recipeData = rSnap.data();
                 fetchedRecipeName = recipeData.name;
                 console.log(`[DEBUG-SHARE] Recipe found. Name: ${fetchedRecipeName}`);
@@ -67,9 +86,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // 2. Fetch Version document for ingredients and steps
             if (versionId) {
                 console.log(`[DEBUG-SHARE] Fetching Version data: ${versionId}`);
-                const vRef = doc(db, 'recipes', recipeId, 'versions', versionId);
-                const vSnap = await getDoc(vRef);
-                if (vSnap.exists()) {
+                const vSnap = await db.collection('recipes').doc(recipeId).collection('versions').doc(versionId).get();
+                if (vSnap.exists) {
                     versionData = vSnap.data();
                     ingredientsText = versionData.sections?.map((s: any) =>
                         s.name + ": " + s.ingredients?.map((i: any) => `${i.name}${i.quantity}${i.unit}`).join(', ')
@@ -95,10 +113,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const origin = `${protocol}://${host}`;
         // Pass the already fetched name to avoid redundant DB hits in og-gen (Optimization for crawlers)
         const cb = Date.now();
-        // Base64 images are too large for og:image tags and often rejected by crawlers. 
-        // We serve them via /api/image instead.
-        const isBase64 = recipeData?.imageUrl?.startsWith('data:image');
-
+        
         // Determine the OGP image URL
         // We always use api/og-gen now, which handles the split layout (image + card) internally.
         const ogImageUrl = `${origin}/api/og-gen?recipeName=${encodeURIComponent(name)}&recipeId=${recipeId}&versionId=${versionId || ''}&cb=${cb}`;

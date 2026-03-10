@@ -1,6 +1,26 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../src/store/firebase';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import * as admin from 'firebase-admin';
+
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+    try {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
+        if (serviceAccount.project_id) {
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount),
+            });
+        } else {
+            // Fallback for local development
+            admin.initializeApp({
+                projectId: 'golden-raito-app',
+            });
+        }
+    } catch (e) {
+        console.error('[DEBUG-SITEMAP] Firebase Admin init error:', e);
+    }
+}
+
+const db = admin.firestore();
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
@@ -9,9 +29,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const origin = `${protocol}://${host}`;
 
         // Fetch all public recipes
-        const recipesCol = collection(db, 'recipes');
-        const q = query(recipesCol, where("isPublic", "==", true));
-        const snapshot = await getDocs(q);
+        const snapshot = await db.collection('recipes')
+            .where("isPublic", "==", true)
+            .get();
         const publicRecipes = snapshot.docs
             .map(doc => doc.data())
             .filter((r: any) => !r.originRecipeId) // Only show original creations in sitemap
