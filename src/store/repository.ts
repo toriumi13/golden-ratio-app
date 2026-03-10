@@ -154,38 +154,20 @@ export const getRecipes = async (): Promise<Recipe[]> => {
     try {
         const userId = auth.currentUser?.uid;
         if (!userId) {
-            console.log("[DEBUG-REPO] getRecipes: No userId found");
             return [];
         }
 
         const recipesCol = collection(db, 'recipes');
-        // Temporarily remove orderBy to avoid composite index requirement for diagnosis
         const q = query(
             recipesCol,
-            where("userId", "==", userId)
-            // orderBy('createdAt', 'desc')
+            where("userId", "==", userId),
+            orderBy('createdAt', 'desc')
         );
 
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-            window.alert("[DEBUG-REPO] getDocs開始. UID: " + userId);
-        }
         const snapshot = await getDocs(q);
-        
-        // Show result as alert for easier debugging on web
-        if (Platform.OS === 'web') {
-            const msg = `[DEBUG] UID: ${userId}\nFound: ${snapshot.docs.length} recipes`;
-            console.log(msg);
-            if (typeof window !== 'undefined') {
-                window.alert(msg);
-            }
-        }
-
-        // Sort in memory instead
-        return snapshot.docs
-            .map(doc => doc.data() as Recipe)
-            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        return snapshot.docs.map(doc => doc.data() as Recipe);
     } catch (e: any) {
-        console.error("[DEBUG-REPO] getRecipes error:", e);
+        console.error("[REPO] getRecipes error:", e);
         throw e;
     }
 };

@@ -33,9 +33,6 @@ export default function HomeScreen() {
 
 
     const loadRecipes = async () => {
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-            window.alert("[DEBUG-HOME] loadRecipes開始. UID: " + (auth.currentUser?.uid || 'null'));
-        }
         try {
             const data = await getRecipes();
             setRecipes(data);
@@ -47,12 +44,8 @@ export default function HomeScreen() {
             });
             setAllTags(Array.from(tags).sort());
         } catch (e: any) {
-            console.error("[DEBUG-HOME] loadRecipes error:", e);
-            const errMsg = `レシピの読み込みに失敗しました: ${e.message}`;
-            if (Platform.OS === 'web' && typeof window !== 'undefined') {
-                window.alert(errMsg);
-            }
-            Alert.alert("エラー", errMsg);
+            console.error("[HOME] loadRecipes error:", e);
+            Alert.alert("エラー", `レシピの読み込みに失敗しました: ${e.message}`);
         }
     };
 
