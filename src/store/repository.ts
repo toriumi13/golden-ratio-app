@@ -253,19 +253,10 @@ export const setRecipePublicStatus = async (recipeId: string, versionId: string,
         const recipeRef = doc(db, 'recipes', recipeId);
         const versionRef = doc(db, 'recipes', recipeId, 'versions', versionId);
 
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-            window.alert("[DEBUG-REPO] Public設定更新開始: " + isPublic);
-        }
         await updateDoc(recipeRef, { isPublic });
         await updateDoc(versionRef, { isPublic });
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-            window.alert("[DEBUG-REPO] Public設定更新完了");
-        }
     } catch (e: any) {
         console.error("[REPO] setRecipePublicStatus error:", e);
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-            window.alert("[DEBUG-REPO] Public設定更新失敗: " + e.message);
-        }
         throw e;
     }
 };
@@ -503,9 +494,6 @@ export const toggleLike = async (recipeId: string): Promise<boolean> => {
     const likeRef = doc(db, 'recipes', recipeId, 'likes', userId);
 
     try {
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-            window.alert("[DEBUG-REPO] Like トランザクション開始");
-        }
         const result = await runTransaction(db, async (transaction) => {
             const likeSnap = await transaction.get(likeRef);
             const isLiked = likeSnap.exists();
@@ -526,15 +514,9 @@ export const toggleLike = async (recipeId: string): Promise<boolean> => {
                 return true;
             }
         });
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-            window.alert("[DEBUG-REPO] Like トランザクション完了: " + result);
-        }
         return result;
     } catch (e: any) {
         console.error("[REPO] toggleLike error:", e);
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-            window.alert("[DEBUG-REPO] Like 失敗: " + e.message);
-        }
         throw e;
     }
 };
