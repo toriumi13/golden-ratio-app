@@ -165,6 +165,10 @@ export const getRecipes = async (): Promise<Recipe[]> => {
             where("userId", "==", userId)
             // orderBy('createdAt', 'desc')
         );
+
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            window.alert("[DEBUG-REPO] getDocs開始. UID: " + userId);
+        }
         const snapshot = await getDocs(q);
         
         // Show result as alert for easier debugging on web

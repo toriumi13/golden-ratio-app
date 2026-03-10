@@ -124,9 +124,9 @@ const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
   return (
     <>
       {children}
-      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.7)', padding: 5, zIndex: 9999 }}>
-        <Text style={{ fontSize: 9, color: '#fff' }}>
-          Build 23:05 | UID: {user?.uid || 'NONE'} | {user?.email || (user?.isAnonymous ? 'ANON' : 'GUEST')}
+      <View style={{ position: 'absolute', bottom: 12, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.8)', padding: 4, zIndex: 9999 }}>
+        <Text style={{ fontSize: 8, color: '#fff', textAlign: 'center' }}>
+          Build 23:14 | Proj: golden-raito-app | UID: {user?.uid || 'NONE'} | {user?.email || (user?.isAnonymous ? 'ANON' : 'GUEST')}
         </Text>
       </View>
     </>
