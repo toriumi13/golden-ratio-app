@@ -121,7 +121,14 @@ const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
     return <>{children}</>;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <View style={{ position: 'absolute', bottom: 5, left: 5, opacity: 0.3 }}>
+        <Text style={{ fontSize: 8 }}>Debug Build: 22:50</Text>
+      </View>
+    </>
+  );
 };
 
 export default function App() {
