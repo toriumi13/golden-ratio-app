@@ -3,8 +3,8 @@ import { View, FlatList, StyleSheet, Dimensions, Alert, Platform, TouchableOpaci
 import { Appbar, Card, FAB, Text, useTheme, IconButton, Surface, Button, Portal, Dialog } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Recipe } from '../types';
-import { getRecipes, createRecipe, deleteRecipe } from '../store/repository';
-import { seedDemoData } from '../store/seed';
+import { getRecipes, createRecipe, deleteRecipe, isAdmin } from '../store/repository';
+import { seedDemoData, seedOfficialRecipes } from '../store/seed';
 import { logout } from '../store/auth';
 import LoginScreen from './LoginScreen';
 import Paywall from '../components/Paywall';
@@ -19,6 +19,7 @@ const { width } = Dimensions.get('window');
 export default function HomeScreen() {
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [isSeeding, setIsSeeding] = useState(false);
+    const [isSeedingOfficial, setIsSeedingOfficial] = useState(false);
     const [showLogin, setShowLogin] = useState(false);
     const [showPaywall, setShowPaywall] = useState(false);
     const [paywallReason, setPaywallReason] = useState<string | null>(null);
@@ -167,6 +168,19 @@ export default function HomeScreen() {
         await seedDemoData();
         await loadRecipes();
         setIsSeeding(false);
+    };
+
+    const handleSeedOfficial = async () => {
+        setIsSeedingOfficial(true);
+        try {
+            await seedOfficialRecipes();
+            await loadRecipes();
+            Alert.alert("成功", "公式レシピ（画像付き）の一括登録が完了しました！");
+        } catch (error: any) {
+            Alert.alert("エラー", "登録に失敗しました: " + error.message);
+        } finally {
+            setIsSeedingOfficial(false);
+        }
     };
 
     const handleImportPreset = async (preset: PresetRecipe) => {
@@ -364,27 +378,9 @@ export default function HomeScreen() {
                 </Button>
             </Appbar.Header>
 
-            {recipes.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                    <IconButton icon="book-open-variant" size={64} iconColor="#DDD" />
-                    <Text variant="headlineSmall" style={styles.emptyTitle}>研究ノートはまだありません</Text>
-                    <Text variant="bodyMedium" style={styles.emptySubtitle}>
-                        右下の「＋」ボタンから、あなただけの最高の配合の記録を始めましょう。
-                    </Text>
-                    <Button
-                        mode="outlined"
-                        onPress={handleSeedData}
-                        loading={isSeeding}
-                        disabled={isSeeding}
-                        style={{ marginTop: 24 }}
-                    >
-                        デモデータを追加する
-                    </Button>
-                </View>
-            ) : (
-                <View style={{ flex: 1 }}>
-                    <FlatList
-                        data={selectedTag ? recipes.filter(r => r.tags?.includes(selectedTag)) : recipes}
+            <View style={{ flex: 1 }}>
+                <FlatList
+                    data={selectedTag ? recipes.filter(r => r.tags?.includes(selectedTag)) : recipes}
                         keyExtractor={(item) => item.id}
                         renderItem={renderRecipeCard}
                         contentContainerStyle={styles.listContent}
@@ -428,6 +424,22 @@ export default function HomeScreen() {
                                         </Surface>
                                     </TouchableOpacity>
                                 </View>
+
+                                {isAdmin() && (
+                                    <View style={{ marginBottom: 24, paddingHorizontal: 16 }}>
+                                        <Button
+                                            mode="contained"
+                                            buttonColor="#C5A059"
+                                            icon="star-shooting"
+                                            onPress={handleSeedOfficial}
+                                            loading={isSeedingOfficial}
+                                            disabled={isSeedingOfficial}
+                                            style={{ borderRadius: 8 }}
+                                        >
+                                            【管理者専用】公式レシピを一括登録
+                                        </Button>
+                                    </View>
+                                )}
 
                                 <View style={styles.sectionHeaderRow}>
                                     <Text style={styles.sectionTitle}>定番の黄金比10選</Text>
@@ -483,6 +495,39 @@ export default function HomeScreen() {
                                 )}
                             </View>
                         }
+                        ListEmptyComponent={
+                            <View style={styles.emptyContainer}>
+                                <IconButton icon="book-open-variant" size={64} iconColor="#DDD" />
+                                <Text variant="headlineSmall" style={styles.emptyTitle}>研究ノートはまだありません</Text>
+                                <Text variant="bodyMedium" style={styles.emptySubtitle}>
+                                    右下の「＋」ボタンから、あなただけの最高の配合の記録を始めましょう。
+                                </Text>
+                                {isAdmin() && (
+                                    <View style={{ marginTop: 16 }}>
+                                        <Button
+                                            mode="contained"
+                                            buttonColor="#C5A059"
+                                            icon="star-shooting"
+                                            onPress={handleSeedOfficial}
+                                            loading={isSeedingOfficial}
+                                            disabled={isSeedingOfficial}
+                                            style={{ borderRadius: 8 }}
+                                        >
+                                            【管理者専用】公式レシピを一括登録
+                                        </Button>
+                                    </View>
+                                )}
+                                <Button
+                                    mode="outlined"
+                                    onPress={handleSeedData}
+                                    loading={isSeeding}
+                                    disabled={isSeeding}
+                                    style={{ marginTop: 24 }}
+                                >
+                                    デモデータを追加する
+                                </Button>
+                            </View>
+                        }
                     />
                     {userProfile?.plan !== 'standard' && (
                         <Card style={styles.premiumPromoCard} elevation={2}>
@@ -510,7 +555,7 @@ export default function HomeScreen() {
                         </Card>
                     )}
                 </View>
-            )}
+
 
             <FAB
                 icon="plus"

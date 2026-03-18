@@ -4,6 +4,7 @@ export interface Recipe {
   name: string;
   createdAt: string;
   isPublic?: boolean;
+  isShowcase?: boolean;
   originRecipeId?: string | null; // ID of the original recipe this was copied/imported from
   currentVersionId?: string;
   latestVersionNumber?: string;

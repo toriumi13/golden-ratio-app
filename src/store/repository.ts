@@ -20,6 +20,12 @@ import { Recipe, Version, Section, Step, Ingredient } from '../types';
 import { checkSubscriptionStatus } from './subscription';
 import { Platform } from 'react-native';
 
+const ADMIN_EMAILS = ['katsushige2823@gmail.com'];
+
+export const isAdmin = (): boolean => {
+    return auth.currentUser?.email ? ADMIN_EMAILS.includes(auth.currentUser.email) : false;
+};
+
 // ---- Image Upload (Base64 for Free Tier) ----
 export const uploadRecipeImage = async (recipeId: string, base64Uri: string): Promise<string> => {
     const userId = auth.currentUser?.uid;
@@ -258,6 +264,16 @@ export const setRecipePublicStatus = async (recipeId: string, versionId: string,
     } catch (e: any) {
         console.error("[REPO] setRecipePublicStatus error:", e);
         throw e;
+    }
+};
+
+export const toggleShowcaseStatus = async (recipeId: string, versionId: string, isShowcase: boolean): Promise<void> => {
+    if (!isAdmin()) throw new Error("Permission denied");
+    const recipeRef = doc(db, 'recipes', recipeId);
+    const versionRef = doc(db, 'recipes', recipeId, 'versions', versionId);
+    await updateDoc(recipeRef, { isPublic: isShowcase });
+    if (versionId) {
+        await updateDoc(versionRef, { isPublic: isShowcase });
     }
 };
 

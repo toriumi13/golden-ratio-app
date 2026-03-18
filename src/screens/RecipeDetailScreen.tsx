@@ -4,7 +4,7 @@ import { Appbar, Text, Card, Divider, Chip, useTheme, Button, Portal, Dialog, Ic
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Recipe, Version } from '../types';
 import { db, auth } from '../store/firebase';
-import { getRecipeDetails, createNewVersionFromExisting, getUserProfile, UserProfile, setRecipePublicStatus, createRecipe, addSection, addIngredient, addStep, toggleLike, getLikeStatus } from '../store/repository';
+import { getRecipeDetails, createNewVersionFromExisting, getUserProfile, UserProfile, setRecipePublicStatus, createRecipe, addSection, addIngredient, addStep, toggleLike, getLikeStatus, isAdmin, toggleShowcaseStatus } from '../store/repository';
 import Paywall from '../components/Paywall';
 import { presentPaywall } from '../store/subscription';
 import QRCode from 'react-native-qrcode-svg';
@@ -73,6 +73,21 @@ export default function RecipeDetailScreen() {
             });
         } catch (error: any) {
             Alert.alert('エラー', 'いいねの更新に失敗しました。ログインしているか確認してください。');
+        }
+    };
+
+    const handleToggleShowcase = async () => {
+        if (!recipe || !currentVersion) return;
+        try {
+            const newStatus = !recipe.isPublic;
+            await toggleShowcaseStatus(recipe.id, currentVersion.id, newStatus);
+            setRecipe({
+                ...recipe,
+                isPublic: newStatus
+            });
+            Alert.alert('成功', newStatus ? 'ショーケースに公開しました' : 'ショーケースから非公開にしました');
+        } catch (error: any) {
+            Alert.alert('エラー', 'ショーケースの更新に失敗しました。');
         }
     };
 
@@ -196,10 +211,10 @@ export default function RecipeDetailScreen() {
     const handleShare = async () => {
         if (!recipe || !currentVersion) return;
 
-        // Strictly prevent sharing if it's a copy (has originRecipeId)
+        // Strictly prevent sharing if it's a copy (has originRecipeId), unless Admin
         const isCopy = !!(recipe.originRecipeId && recipe.originRecipeId !== "" && recipe.originRecipeId !== "null");
 
-        if (isCopy) {
+        if (isCopy && !isAdmin()) {
             const message = 'このレシピは他の方の研究結果を参考にしたものです。ショーケースへの公開や外部への共有は、あなた自身がゼロから作成した「独自のオリジナリティある研究ノート」のみに制限されています。\n\n自ら発見した究極の比率を記録して、世界に発信しましょう！';
 
             if (Platform.OS === 'web') {
@@ -322,6 +337,13 @@ export default function RecipeDetailScreen() {
                     <Appbar.Action
                         icon="share-variant"
                         onPress={handleShare}
+                    />
+                )}
+                {!fromShowcase && isAdmin() && (
+                    <Appbar.Action
+                        icon={recipe.isPublic ? "star" : "star-outline"}
+                        iconColor={recipe.isPublic ? "#C5A059" : undefined}
+                        onPress={handleToggleShowcase}
                     />
                 )}
                 {!fromShowcase && recipe.userId === auth.currentUser?.uid && (
