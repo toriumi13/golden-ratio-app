@@ -291,7 +291,7 @@ export const getAllPublicRecipes = async (): Promise<Recipe[]> => {
     // Sort and filter in memory to handle missing fields correctly
     return snapshot.docs
         .map(doc => doc.data() as Recipe)
-        .filter(r => !r.originRecipeId) // Only show original creations
+        .filter(r => !r.originRecipeId || r.originRecipeId.startsWith('official_')) // Only show original creations or official seeds
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 };
 
