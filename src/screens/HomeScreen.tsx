@@ -88,31 +88,17 @@ export default function HomeScreen() {
                     }
                 }
 
-                // 2. ID-based Import (New)
+                // 2. ID-based Navigation
                 const rId = params.get('recipeId');
-                const vId = params.get('versionId');
-                const rName = params.get('recipeName');
 
                 if (rId) {
-                    try {
-                        console.log(`Attempting to import recipe: ${rId}, version: ${vId || 'latest'}`);
-                        const publicVersion = await getPublicRecipeDetails(rId, vId || undefined);
-                        if (publicVersion) {
-                            setImportData({
-                                name: rName || "共有されたレシピ",
-                                recipeId: rId,
-                                version: publicVersion
-                            });
-                        }
+                    navigation.navigate('RecipeDetail', { recipeId: rId, fromShowcase: true });
 
-                        // Clear params
-                        const url = new URL(window.location.href);
-                        ['recipeId', 'versionId', 'recipeName'].forEach(p => url.searchParams.delete(p));
-                        window.history.replaceState({}, '', url.toString());
-                    } catch (e: any) {
-                        console.error('Import error:', e);
-                        alert(`インポートできませんでした: ${e.message}`);
-                    }
+                    // Clear params
+                    const url = new URL(window.location.href);
+                    ['recipeId', 'versionId', 'recipeName'].forEach(p => url.searchParams.delete(p));
+                    window.history.replaceState({}, '', url.toString());
+                    return;
                 }
 
                 // 3. Screen-based Navigation (New)
