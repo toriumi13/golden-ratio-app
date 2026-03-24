@@ -76,8 +76,13 @@ const analyticsScript = `
     gtag('config', 'G-RWX4ZC1KND');
   </script>`;
 
+// Google AdSense
+const adsenseScript = `
+  <!-- Google AdSense Verification -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2365228225226168" crossorigin="anonymous"></script>`;
+
 // </head>の前に追加
-html = html.replace('</head>', analyticsScript + '\n</head>');
+html = html.replace('</head>', analyticsScript + '\n' + adsenseScript + '\n</head>');
 
 // </head>の前にPWAタグを挿入
 html = html.replace('</head>', pwaMetaTags + '\n</head>');
