@@ -111,7 +111,7 @@ export const createRecipe = async (name: string, originRecipeId?: string, baseSe
 
     // --- Subscription Check ---
     const profile = await getUserProfile();
-    if (profile.plan === 'free') {
+    if (profile.plan === 'free' && !isAdmin()) {
         const count = await getRecipeCount();
         if (count >= 5) {
             throw new Error("レシピの保存上限（5個）に達しました。無制限に保存するにはスタンダードプランを検討してください。");
@@ -442,9 +442,8 @@ export const createNewVersionFromExisting = async (
 
     // --- Subscription Check ---
     const profile = await getUserProfile();
-    if (profile.plan === 'free') {
-        const versionsCol = collection(db, 'recipes', recipeId, 'versions');
-        const countSnap = await getDocs(versionsCol);
+    if (profile.plan === 'free' && !isAdmin()) {
+        const countSnap = await getDocs(collection(db, 'recipes', recipeId, 'versions'));
         if (countSnap.size >= 10) {
             throw new Error("このレシピのバージョン管理上限（10個）に達しました。研究を続けるにはスタンダードプランを検討してください。");
         }
