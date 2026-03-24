@@ -13,6 +13,7 @@ import { getUserProfile, UserProfile, addSection, addIngredient, addStep, getPub
 import { presentPaywall, presentCustomerCenter } from '../store/subscription';
 import { PRESET_RECIPES, PresetRecipe } from '../data/presets';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { AdBanner } from '../components/ads';
 
 const { width } = Dimensions.get('window');
 
@@ -539,6 +540,11 @@ export default function HomeScreen() {
                                 </View>
                             </View>
                         </Card>
+                    )}
+                    {userProfile?.plan !== 'standard' && (
+                        <View style={{ alignItems: 'center', width: '100%', paddingBottom: 20 }}>
+                            <AdBanner />
+                        </View>
                     )}
                 </View>
 
