@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, FlatList, StyleSheet, Dimensions, Alert, Platform, TouchableOpacity, ScrollView } from 'react-native';
+import { View, FlatList, StyleSheet, useWindowDimensions, Alert, Platform, TouchableOpacity, ScrollView } from 'react-native';
 import { Appbar, Card, FAB, Text, useTheme, IconButton, Surface, Button, Portal, Dialog } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Recipe } from '../types';
@@ -15,9 +15,11 @@ import { PRESET_RECIPES, PresetRecipe } from '../data/presets';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { AdBanner } from '../components/ads';
 
-const { width } = Dimensions.get('window');
+
 
 export default function HomeScreen() {
+    const { width } = useWindowDimensions();
+    const isMobile = width < 600;
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [isSeeding, setIsSeeding] = useState(false);
     const [isSeedingOfficial, setIsSeedingOfficial] = useState(false);
@@ -307,7 +309,7 @@ export default function HomeScreen() {
                         </View>
                     </View>
 
-                    <Text variant="titleLarge" style={styles.recipeName} numberOfLines={1}>
+                    <Text variant="titleLarge" style={[styles.recipeName, isMobile && { fontSize: 18 }]} >
                         {item.name}
                     </Text>
 
@@ -351,6 +353,18 @@ export default function HomeScreen() {
         </Card>
     );
 
+    const renderFooterLinks = () => (
+        <View style={styles.footerLinks}>
+            <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
+                <Text style={styles.footerLinkText}>プライバシーポリシー</Text>
+            </TouchableOpacity>
+            <Text style={styles.footerDivider}>|</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('TermsOfService')}>
+                <Text style={styles.footerLinkText}>利用規約</Text>
+            </TouchableOpacity>
+        </View>
+    );
+
     return (
         <View style={styles.container}>
             <Appbar.Header elevated style={styles.appbar}>
@@ -358,13 +372,17 @@ export default function HomeScreen() {
                     title="黄金比のレシピ帳"
                     titleStyle={styles.appTitle}
                 />
-                {userProfile?.plan === 'standard' && (
-                    <IconButton
+                {userProfile?.plan !== 'standard' && (
+                    <Button
+                        mode="text"
                         icon="crown"
-                        iconColor="#B8860B"
-                        size={20}
-                        onPress={() => presentCustomerCenter()}
-                    />
+                        textColor="#B8860B"
+                        onPress={() => setShowPaywall(true)}
+                        labelStyle={{ fontSize: isMobile ? 12 : 14, fontWeight: 'bold' }}
+                        style={{ marginRight: -8 }}
+                    >
+                        {!isMobile && "プレミアム"}
+                    </Button>
                 )}
                 <Button
                     mode="text"
@@ -528,59 +546,23 @@ export default function HomeScreen() {
                                 </Button>
                             </View>
                         }
+                        ListFooterComponent={renderFooterLinks}
                     />
-                    {userProfile?.plan !== 'standard' && (
-                        <Card style={styles.premiumPromoCard} elevation={2}>
-                            <View style={styles.premiumPromoContent}>
-                                <View style={styles.premiumPromoIconContainer}>
-                                    <IconButton icon="crown" iconColor="#B8860B" size={24} />
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.premiumPromoTitle}>プレミアム機能で研究を加速</Text>
-                                    <Text style={styles.premiumPromoSubtitle}>広告なし・レシピ無制限・逆算スケーラー</Text>
-                                    <Button
-                                        mode="contained"
-                                        compact
-                                        onPress={() => {
-                                            setPaywallReason(null);
-                                            setShowPaywall(true);
-                                        }}
-                                        style={styles.premiumPromoButton}
-                                        labelStyle={{ fontSize: 11, fontWeight: 'bold' }}
-                                    >
-                                        詳細を見る
-                                    </Button>
-                                </View>
-                            </View>
-                        </Card>
-                    )}
-                    {userProfile?.plan !== 'standard' && (
-                        <View style={{ alignItems: 'center', width: '100%', paddingBottom: 20 }}>
-                            <AdBanner />
-                        </View>
-                    )}
-
-                    {/* Footer Links for AdSense / Compliance */}
-                    <View style={styles.footerLinks}>
-                        <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
-                            <Text style={styles.footerLinkText}>プライバシーポリシー</Text>
-                        </TouchableOpacity>
-                        <Text style={styles.footerDivider}>|</Text>
-                        <TouchableOpacity onPress={() => navigation.navigate('TermsOfService')}>
-                            <Text style={styles.footerLinkText}>利用規約</Text>
-                        </TouchableOpacity>
-                    </View>
                 </View>
 
-
-            <FAB
-                icon="plus"
-                style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-                color="#fff"
-                onPress={handleAddRecipe}
-                label="新しいレシピ"
-                visible={true}
-            />
+            <Surface style={styles.bottomBar} elevation={4}>
+                <View style={styles.adArea}>
+                    {userProfile?.plan !== 'standard' && <AdBanner />}
+                </View>
+                <FAB
+                    icon="plus"
+                    style={styles.fabInBar}
+                    color="#fff"
+                    onPress={handleAddRecipe}
+                    label={!isMobile ? "新しいレシピ" : undefined}
+                    visible={true}
+                />
+            </Surface>
 
             <Portal>
                 <Dialog visible={showLogin} onDismiss={() => setShowLogin(false)} style={styles.loginDialog}>
@@ -664,11 +646,12 @@ const styles = StyleSheet.create({
     appTitle: {
         fontWeight: 'bold',
         color: '#4E342E',
-        letterSpacing: 1,
+        letterSpacing: 0.5,
+        fontSize: 18,
     },
     listContent: {
         padding: 16,
-        paddingBottom: 100,
+        paddingBottom: 120, // Enough space for the bottom bar
     },
     recipeCard: {
         marginBottom: 20,
@@ -790,7 +773,32 @@ const styles = StyleSheet.create({
         fontSize: 16,
         opacity: 0.8,
     },
-    fab: {
+    bottomBar: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 80,
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderTopWidth: 1,
+        borderTopColor: '#EEE',
+        paddingHorizontal: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        zIndex: 1000,
+    },
+    adArea: {
+        flex: 1,
+        marginRight: 16,
+        maxWidth: 320,
+    },
+    fabInBar: {
+        backgroundColor: '#C5A059',
+        borderRadius: 16,
+        elevation: 2,
+    },
+    fab: { // Keep for other possible usages or just clean up later
         position: 'absolute',
         margin: 20,
         right: 0,
@@ -913,43 +921,12 @@ const styles = StyleSheet.create({
         backgroundColor: '#EFEBE9',
         marginVertical: 20,
     },
-    premiumPromoCard: {
-        backgroundColor: '#4E342E', // Dark Espresso base
-        margin: 4,
-        marginBottom: 80, // Extra space to avoid FAB overlap
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: '#B8860B',
-    },
-    premiumPromoContent: {
-        flexDirection: 'row',
-        padding: 16,
-        alignItems: 'center',
-    },
-    premiumPromoIconContainer: {
-        backgroundColor: '#FDFCF0',
-        width: 44,
-        height: 44,
+    adWrapper: {
+        backgroundColor: 'rgba(255,255,255,0.9)',
         borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16,
-    },
-    premiumPromoTitle: {
-        color: '#FDFCF0',
-        fontSize: 15,
-        fontWeight: 'bold',
-    },
-    premiumPromoSubtitle: {
-        color: '#BD9A7A',
-        fontSize: 11,
-        marginTop: 2,
-        marginBottom: 8,
-    },
-    premiumPromoButton: {
-        backgroundColor: '#B8860B',
-        borderRadius: 8,
-        alignSelf: 'flex-start',
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#EEE',
     },
     quickActionsRow: {
         flexDirection: 'row',
