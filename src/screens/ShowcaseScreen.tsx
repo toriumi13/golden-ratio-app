@@ -7,7 +7,7 @@ import {
     SafeAreaView,
     StatusBar,
     ActivityIndicator,
-    Dimensions
+    useWindowDimensions
 } from 'react-native';
 import {
     Text,
@@ -23,9 +23,10 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { CATEGORIES, getCategoryById } from '../constants/categories';
 import { ScrollView, Alert } from 'react-native';
 
-const { width } = Dimensions.get('window');
+
 
 const ShowcaseScreen = ({ navigation }: any) => {
+    const { width } = useWindowDimensions();
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
     const [likedRecipes, setLikedRecipes] = useState<Record<string, boolean>>({});
@@ -200,7 +201,7 @@ const ShowcaseScreen = ({ navigation }: any) => {
                             <TouchableOpacity
                                 key={cat.id}
                                 onPress={() => handleCategorySelect(cat.id)}
-                                style={styles.gridFolderItem}
+                                style={[styles.gridFolderItem, { width: (width - 48) / 2 }]}
                             >
                                 <Surface style={[styles.gridFolderIconBg, { backgroundColor: `${cat.color}10` }]} elevation={1}>
                                     <MaterialCommunityIcons name={cat.icon as any} size={36} color={cat.color} />
@@ -419,7 +420,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     gridFolderItem: {
-        width: (width - 48) / 2, // 2 columns
         backgroundColor: '#FFF',
         borderRadius: 24,
         padding: 20,

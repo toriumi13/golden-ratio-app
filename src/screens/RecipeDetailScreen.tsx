@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, ScrollView, StyleSheet, Alert, TextInput as RNTextInput, Platform, Image } from 'react-native';
+import { View, ScrollView, StyleSheet, Alert, TextInput as RNTextInput, Platform, Image, useWindowDimensions, TouchableOpacity } from 'react-native';
 import { Appbar, Text, Card, Divider, Chip, useTheme, Button, Portal, Dialog, IconButton } from 'react-native-paper';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Recipe, Version } from '../types';
@@ -13,6 +13,8 @@ import { toPng } from 'html-to-image';
 import { getVirtualWeight, getRatioWidth } from '../utils/ratio';
 
 export default function RecipeDetailScreen() {
+    const { width } = useWindowDimensions();
+    const isMobile = width < 600;
     const route = useRoute<any>();
     const navigation = useNavigation<any>();
     const theme = useTheme();
@@ -715,6 +717,17 @@ export default function RecipeDetailScreen() {
                         </Text>
                     )}
                 </View>
+
+                {/* Footer Links for AdSense / Compliance */}
+                <View style={styles.footerLinks}>
+                    <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
+                        <Text style={styles.footerLinkText}>プライバシーポリシー</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.footerDivider}>|</Text>
+                    <TouchableOpacity onPress={() => navigation.navigate('TermsOfService')}>
+                        <Text style={styles.footerLinkText}>利用規約</Text>
+                    </TouchableOpacity>
+                </View>
             </ScrollView>
 
             {/* New Version Dialog */}
@@ -933,5 +946,23 @@ const styles = StyleSheet.create({
     recipeImage: {
         width: '100%',
         height: 220,
+    },
+    footerLinks: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 32,
+        paddingBottom: 60,
+        opacity: 0.6,
+    },
+    footerLinkText: {
+        fontSize: 12,
+        color: '#8C7853',
+        textDecorationLine: 'underline',
+    },
+    footerDivider: {
+        marginHorizontal: 12,
+        fontSize: 12,
+        color: '#8C7853',
     },
 });
