@@ -188,11 +188,15 @@ export default function HomeScreen() {
                         {!isMobile && "プレミアム"}
                     </Button>
                 )}
-                <IconButton
+                <Button
+                    mode="text"
                     icon={auth.currentUser?.isAnonymous ? "account-circle-outline" : "account-check"}
                     onPress={() => setShowLogin(true)}
-                    iconColor={theme.colors.primary}
-                />
+                    textColor={theme.colors.primary}
+                    labelStyle={{ fontWeight: 'bold' }}
+                >
+                    {auth.currentUser?.isAnonymous ? "ログイン" : "プロフィール"}
+                </Button>
             </Appbar.Header>
 
             <FlatList

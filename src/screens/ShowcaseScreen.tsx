@@ -7,7 +7,8 @@ import {
     SafeAreaView,
     StatusBar,
     ActivityIndicator,
-    useWindowDimensions
+    useWindowDimensions,
+    Image
 } from 'react-native';
 import {
     Text,
@@ -19,9 +20,12 @@ import {
     Searchbar
 } from 'react-native-paper';
 import { getAllPublicRecipes, toggleLike, getLikeStatus } from '../store/repository';
+import { auth } from '../store/firebase';
+import LoginScreen from './LoginScreen';
 import { Recipe } from '../types';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { CATEGORIES, getCategoryById } from '../constants/categories';
+import { getDefaultImageForCategory } from '../constants/defaultImages';
 import { ScrollView, Alert } from 'react-native';
 
 
@@ -33,6 +37,7 @@ const ShowcaseScreen = ({ navigation }: any) => {
     const [likedRecipes, setLikedRecipes] = useState<Record<string, boolean>>({});
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [showLogin, setShowLogin] = useState(false);
     const theme = useTheme();
 
     useEffect(() => {
@@ -118,7 +123,7 @@ const ShowcaseScreen = ({ navigation }: any) => {
         return (
             <Card
                 style={styles.recipeCard}
-                elevation={2}
+                elevation={1}
                 onPress={() => {
                     navigation.navigate('RecipeDetail', {
                         recipeId: item.id,
@@ -127,44 +132,47 @@ const ShowcaseScreen = ({ navigation }: any) => {
                     });
                 }}
             >
-                <Card.Content style={styles.cardContent}>
-                    <View style={styles.cardHeader}>
-                        <View style={[styles.iconContainer, { backgroundColor: `${category.color}10`, borderColor: `${category.color}20` }]}>
-                            <MaterialCommunityIcons name={category.icon as any} size={24} color={category.color} />
-                        </View>
-                        <View style={styles.titleContainer}>
-                            <Text style={styles.recipeName} numberOfLines={1}>{item.name}</Text>
-                            <View style={styles.metaRow}>
-                                <MaterialCommunityIcons name="folder-outline" size={14} color="#8D6E63" />
-                                <Text style={styles.recipeDate}>{category.name}</Text>
-                                <View style={{ width: 8 }} />
-                                <MaterialCommunityIcons name="calendar-clock" size={14} color="#8D6E63" />
-                                <Text style={styles.recipeDate}>
-                                    {new Date(item.latestVersionDate || item.createdAt).toLocaleDateString()}
-                                </Text>
+                <View style={styles.horizontalContainer}>
+                    <Image
+                        source={{ uri: item.imageUrl || getDefaultImageForCategory(item.category || 'others') }}
+                        style={styles.sideImage}
+                    />
+                    <View style={styles.cardContent}>
+                        <View style={styles.cardHeader}>
+                            <View style={[styles.iconContainer, { backgroundColor: `${category.color}10`, borderColor: `${category.color}10` }]}>
+                                <MaterialCommunityIcons name={category.icon as any} size={20} color={category.color} />
+                            </View>
+                            <View style={styles.titleContainer}>
+                                <Text style={styles.recipeName} numberOfLines={1}>{item.name}</Text>
+                                <View style={styles.metaRow}>
+                                    <MaterialCommunityIcons name="calendar-clock" size={12} color="#8D6E63" />
+                                    <Text style={styles.recipeDate}>
+                                        {new Date(item.latestVersionDate || item.createdAt).toLocaleDateString()}
+                                    </Text>
+                                </View>
+                            </View>
+                            <View style={styles.actionsColumn}>
+                                <TouchableOpacity
+                                    style={styles.likeButton}
+                                    onPress={(e) => {
+                                        handleLike(item.id);
+                                    }}
+                                >
+                                    <MaterialCommunityIcons
+                                        name={isLiked ? "heart" : "heart-outline"}
+                                        size={20}
+                                        color={isLiked ? "#E91E63" : "#8D6E63"}
+                                    />
+                                    {likeCount > 0 && (
+                                        <Text style={[styles.likeCountText, isLiked && { color: "#E91E63" }]}>
+                                            {likeCount}
+                                        </Text>
+                                    )}
+                                </TouchableOpacity>
                             </View>
                         </View>
-                        <View style={styles.actionsColumn}>
-                            <TouchableOpacity
-                                style={styles.likeButton}
-                                onPress={(e) => {
-                                    handleLike(item.id);
-                                }}
-                            >
-                                <MaterialCommunityIcons
-                                    name={isLiked ? "heart" : "heart-outline"}
-                                    size={20}
-                                    color={isLiked ? "#E91E63" : "#8D6E63"}
-                                />
-                                {likeCount > 0 && (
-                                    <Text style={[styles.likeCountText, isLiked && { color: "#E91E63" }]}>
-                                        {likeCount}
-                                    </Text>
-                                )}
-                            </TouchableOpacity>
-                        </View>
                     </View>
-                </Card.Content>
+                </View>
             </Card>
         );
     };
@@ -176,6 +184,10 @@ const ShowcaseScreen = ({ navigation }: any) => {
                 <Text style={{ marginTop: 12, color: '#8D6E63' }}>研究成果を読み込み中...</Text>
             </View>
         );
+    }
+
+    if (showLogin) {
+        return <LoginScreen onClose={() => setShowLogin(false)} />;
     }
 
     return (
@@ -198,6 +210,16 @@ const ShowcaseScreen = ({ navigation }: any) => {
                 <Text style={styles.headerTitle}>
                     {isSearching ? '検索結果' : (selectedCategoryId ? getCategoryById(selectedCategoryId).name : '黄金比ショーケース')}
                 </Text>
+                <View style={{ flex: 1 }} />
+                <Button
+                    mode="text"
+                    icon={auth.currentUser?.isAnonymous ? "account-circle-outline" : "account-check"}
+                    onPress={() => setShowLogin(true)}
+                    textColor={theme.colors.primary}
+                    labelStyle={{ fontWeight: 'bold', fontSize: 13 }}
+                >
+                    {auth.currentUser?.isAnonymous ? "ログイン" : "プロフィール"}
+                </Button>
             </View>
 
             <View style={styles.searchContainer}>
@@ -322,8 +344,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 8,
-        paddingTop: 12,
-        backgroundColor: '#F9F7F2',
+        paddingVertical: 12,
+        backgroundColor: '#FFF',
+        justifyContent: 'flex-start',
     },
     searchContainer: {
         paddingHorizontal: 16,
@@ -401,48 +424,53 @@ const styles = StyleSheet.create({
     },
     recipeCard: {
         marginHorizontal: 16,
-        marginBottom: 16,
-        borderRadius: 24,
+        marginBottom: 12,
+        borderRadius: 16,
         backgroundColor: '#FFF',
-        borderWidth: 1,
-        borderColor: '#F2EFE9',
+        overflow: 'hidden',
+    },
+    horizontalContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: 100,
+    },
+    sideImage: {
+        width: 100,
+        height: 100,
     },
     cardContent: {
-        paddingVertical: 16,
-        paddingHorizontal: 20,
+        flex: 1,
+        paddingHorizontal: 12,
     },
     cardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     iconContainer: {
-        width: 52,
-        height: 52,
-        borderRadius: 18,
-        backgroundColor: '#FDFCF0',
+        width: 32,
+        height: 32,
+        borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#FDF7E1',
     },
     titleContainer: {
         flex: 1,
-        marginLeft: 16,
+        marginLeft: 10,
     },
     recipeName: {
-        fontSize: 18,
-        fontWeight: '800',
+        fontSize: 16,
+        fontWeight: 'bold',
         color: '#3E2723',
-        letterSpacing: -0.2,
+        marginBottom: 2,
     },
     metaRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 4,
         opacity: 0.7,
     },
     recipeDate: {
-        fontSize: 12,
+        fontSize: 10,
         color: '#8D6E63',
         marginLeft: 4,
         fontWeight: '500',

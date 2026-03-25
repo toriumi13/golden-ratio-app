@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, ScrollView, StyleSheet, Alert, TextInput as RNTextInput, Platform, Image, useWindowDimensions, TouchableOpacity } from 'react-native';
-import { Appbar, Text, Card, Divider, Chip, useTheme, Button, Portal, Dialog, IconButton } from 'react-native-paper';
+import { Appbar, Text, Card, Divider, Chip, useTheme, Button, Portal, Dialog, IconButton, Surface } from 'react-native-paper';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Recipe, Version, UserProfile } from '../types';
 import { db, auth } from '../store/firebase';
+import LoginScreen from './LoginScreen';
 import { getRecipeDetails, createNewVersionFromExisting, getUserProfile, setRecipePublicStatus, createRecipe, addSection, addIngredient, addStep, toggleLike, getLikeStatus, isAdmin, toggleShowcaseStatus } from '../store/repository';
 import Paywall from '../components/Paywall';
 import { presentPaywall } from '../store/subscription';
@@ -11,6 +12,9 @@ import QRCode from 'react-native-qrcode-svg';
 import * as Clipboard from 'expo-clipboard';
 import { toPng } from 'html-to-image';
 import { getVirtualWeight, getRatioWidth } from '../utils/ratio';
+import { getDefaultImageForCategory } from '../constants/defaultImages';
+import { getCategoryById } from '../constants/categories';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 export default function RecipeDetailScreen() {
     const { width } = useWindowDimensions();
@@ -26,6 +30,7 @@ export default function RecipeDetailScreen() {
 
     // Dialog for new version
     const [showNewVersionDialog, setShowNewVersionDialog] = useState(false);
+    const [showLogin, setShowLogin] = useState(false);
     const [newVersionNotes, setNewVersionNotes] = useState('');
     const [versionType, setVersionType] = useState<'minor' | 'major'>('minor');
     const [dialogKey, setDialogKey] = useState(0);
@@ -289,6 +294,10 @@ export default function RecipeDetailScreen() {
         );
     }
 
+    if (showLogin) {
+        return <LoginScreen onClose={() => setShowLogin(false)} />;
+    }
+
     if (!recipe) {
         return (
             <View style={styles.center}>
@@ -354,10 +363,77 @@ export default function RecipeDetailScreen() {
                         onPress={() => navigation.navigate('EditRecipe', { recipeId: recipe.id, versionId: currentVersion?.id })}
                     />
                 )}
+
+                <Button
+                    mode="text"
+                    icon={auth.currentUser?.isAnonymous ? "account-circle-outline" : "account-check"}
+                    onPress={() => setShowLogin(true)}
+                    textColor={theme.colors.primary}
+                    labelStyle={{ fontWeight: 'bold', fontSize: 13 }}
+                >
+                    {auth.currentUser?.isAnonymous ? "ログイン" : "プロフィール"}
+                </Button>
             </Appbar.Header>
 
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
+                {/* Recipe Concept Header (Replacing the large image) */}
+                <Card style={styles.guideCard} elevation={2}>
+                    <Card.Content style={styles.guideContent}>
+                        <View style={styles.guideHeader}>
+                            <View style={styles.guideIconContainer}>
+                                <MaterialCommunityIcons 
+                                    name={fromShowcase ? "account-star-outline" : "lightbulb-on-outline"} 
+                                    size={24} 
+                                    color="#C5A059" 
+                                />
+                            </View>
+                            <View style={styles.guideTitleColumn}>
+                                <Text style={styles.guideTitle}>
+                                    {fromShowcase ? "ショーケースの楽しみ方" : "黄金比を使いこなすヒント"}
+                                </Text>
+                                <Text style={styles.guideSubtitle}>
+                                    {fromShowcase ? "気に入ったレシピを自分のものに" : "理想の味への進化をサポートします"}
+                                </Text>
+                            </View>
+                        </View>
+                        
+                        <View style={styles.tipsList}>
+                            {fromShowcase ? (
+                                <>
+                                    <View style={styles.tipItem}>
+                                        <IconButton icon="check-circle" size={14} iconColor="#C5A059" style={styles.tipIcon} />
+                                        <Text style={styles.tipText}>「自分のレシピに追加」すると、分量を自由に調整できるようになります。</Text>
+                                    </View>
+                                    <View style={styles.tipItem}>
+                                        <IconButton icon="check-circle" size={14} iconColor="#C5A059" style={styles.tipIcon} />
+                                        <Text style={styles.tipText}>追加したレシピをベースに、自分好みの新しいバージョンを作ってみましょう。</Text>
+                                    </View>
+                                    <View style={styles.tipItem}>
+                                        <IconButton icon="check-circle" size={14} iconColor="#C5A059" style={styles.tipIcon} />
+                                        <Text style={styles.tipText}>良いレシピには「いいね」を送って作者を応援しましょう。</Text>
+                                    </View>
+                                </>
+                            ) : (
+                                <>
+                                    <View style={styles.tipItem}>
+                                        <IconButton icon="check-circle" size={14} iconColor="#C5A059" style={styles.tipIcon} />
+                                        <Text style={styles.tipText}>材料は「g（重さ）」で入力すると、正確な比率が計算されます。</Text>
+                                    </View>
+                                    <View style={styles.tipItem}>
+                                        <IconButton icon="check-circle" size={14} iconColor="#C5A059" style={styles.tipIcon} />
+                                        <Text style={styles.tipText}>「進化の記録」で、前回との違いをメモすると理想に近づきます。</Text>
+                                    </View>
+                                    <View style={styles.tipItem}>
+                                        <IconButton icon="check-circle" size={14} iconColor="#C5A059" style={styles.tipIcon} />
+                                        <Text style={styles.tipText}>比率は基本の形。自分の好みに合わせて微調整を楽しみましょう。</Text>
+                                    </View>
+                                </>
+                            )}
+                        </View>
+                    </Card.Content>
+                </Card>
+
                 {fromShowcase && (
                     <View style={styles.importInfo}>
                         <Text style={styles.importInfoText}>
@@ -503,15 +579,28 @@ export default function RecipeDetailScreen() {
                                     titleStyle={styles.captureSectionTitle}
                                 />
                                 <Card.Content>
-                                    {section.ingredients?.map((ing) => (
-                                        <View key={ing.id} style={styles.captureIngRow}>
-                                            <Text style={styles.captureIngName}>{ing.name}</Text>
-                                            <Text style={styles.captureIngQty}>
-                                                {ing.unit?.includes('適量') ? '' : ing.quantity}
-                                                {ing.unit}
-                                            </Text>
-                                        </View>
-                                    ))}
+                                    {section.ingredients?.map((ing) => {
+                                        const maxWeight = Math.max(...(section.ingredients?.map(i => getVirtualWeight(i.quantity, i.unit || '')) || [1]));
+                                        return (
+                                            <View key={ing.id} style={{ marginBottom: 8 }}>
+                                                <View style={styles.captureIngRow}>
+                                                    <Text style={styles.captureIngName}>{ing.name}</Text>
+                                                    <Text style={styles.captureIngQty}>
+                                                        {ing.unit?.includes('適量') ? '' : ing.quantity}
+                                                        {ing.unit}
+                                                    </Text>
+                                                </View>
+                                                {!ing.unit?.includes('適量') && (
+                                                    <View style={styles.ratioBarContainer}>
+                                                        <View style={[
+                                                            styles.ratioBar,
+                                                            { width: getRatioWidth(ing.quantity, ing.unit || '', maxWeight) as any }
+                                                        ]} />
+                                                    </View>
+                                                )}
+                                            </View>
+                                        );
+                                    })}
                                 </Card.Content>
                             </Card>
                         ))}
@@ -832,7 +921,118 @@ const styles = StyleSheet.create({
         marginLeft: -8,
         marginRight: 8,
     },
-    scrollContent: { padding: 20, paddingBottom: 100 },
+    scrollContent: {
+        paddingBottom: 40,
+        backgroundColor: '#F9F7F2',
+    },
+    imageContainer: {
+        width: '100%',
+        height: 240,
+        backgroundColor: '#E0E0E0',
+        overflow: 'hidden',
+    },
+    mainImage: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
+    },
+    imageOverlay: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: 16,
+        backgroundColor: 'rgba(0,0,0,0.2)',
+    },
+    badgeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    categoryBadge: {
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 20,
+    },
+    categoryBadgeText: {
+        color: '#FFF',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    ratioBarContainer: {
+        height: 6,
+        backgroundColor: '#F5F5F5',
+        borderRadius: 3,
+        overflow: 'hidden',
+        marginTop: 4,
+    },
+    ratioBar: {
+        height: '100%',
+        backgroundColor: '#C5A059',
+        borderRadius: 3,
+    },
+
+    // Guide Card
+    guideCard: {
+        margin: 16,
+        borderRadius: 16,
+        backgroundColor: '#FFFBED',
+        borderWidth: 1,
+        borderColor: '#FFECB3',
+    },
+    guideContent: {
+        padding: 16,
+    },
+    guideHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    guideIconContainer: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: '#FFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#FFECB3',
+    },
+    guideTitleColumn: {
+        flex: 1,
+        marginLeft: 12,
+    },
+    guideTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#3E2723',
+    },
+    guideSubtitle: {
+        fontSize: 11,
+        color: '#8D6E63',
+        marginTop: 2,
+    },
+    tipsList: {
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        borderRadius: 12,
+        padding: 8,
+    },
+    tipItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: 8,
+    },
+    tipIcon: {
+        margin: 0,
+        marginTop: -4,
+    },
+    tipText: {
+        flex: 1,
+        fontSize: 12,
+        lineHeight: 18,
+        color: '#5D4037',
+        fontWeight: '500',
+    },
 
     // Timeline
     timelineItem: { flexDirection: 'row', minHeight: 70 },
