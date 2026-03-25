@@ -247,6 +247,17 @@ const ShowcaseScreen = ({ navigation }: any) => {
                             </Button>
                         </View>
                     )}
+                    ListFooterComponent={() => (
+                        <View style={styles.footerLinks}>
+                            <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
+                                <Text style={styles.footerLinkText}>プライバシーポリシー</Text>
+                            </TouchableOpacity>
+                            <Text style={styles.footerDivider}>|</Text>
+                            <TouchableOpacity onPress={() => navigation.navigate('TermsOfService')}>
+                                <Text style={styles.footerLinkText}>利用規約</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 />
             )}
         </SafeAreaView>
@@ -476,6 +487,24 @@ const styles = StyleSheet.create({
         color: '#8D6E63',
         fontWeight: 'bold',
         marginTop: 2,
+    },
+    footerLinks: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 32,
+        paddingBottom: 60,
+        opacity: 0.6,
+    },
+    footerLinkText: {
+        fontSize: 12,
+        color: '#8C7853',
+        textDecorationLine: 'underline',
+    },
+    footerDivider: {
+        marginHorizontal: 12,
+        fontSize: 12,
+        color: '#8C7853',
     },
 });
 

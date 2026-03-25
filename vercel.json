@@ -11,6 +11,14 @@
             "destination": "/api/guide"
         },
         {
+            "source": "/privacy",
+            "destination": "/api/privacy"
+        },
+        {
+            "source": "/terms",
+            "destination": "/api/terms"
+        },
+        {
             "source": "/r/:recipeId/:versionId",
             "destination": "/api/share?recipeId=:recipeId&versionId=:versionId"
         },

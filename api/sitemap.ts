@@ -55,11 +55,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         xml += '    <priority>0.8</priority>\n';
         xml += '  </url>\n';
 
-        // Add Guide
         xml += '  <url>\n';
         xml += `    <loc>${origin}/guide</loc>\n`;
         xml += '    <changefreq>weekly</changefreq>\n';
         xml += '    <priority>0.8</priority>\n';
+        xml += '  </url>\n';
+        
+        // Add Privacy Policy
+        xml += '  <url>\n';
+        xml += `    <loc>${origin}/privacy</loc>\n`;
+        xml += '    <changefreq>monthly</changefreq>\n';
+        xml += '    <priority>0.5</priority>\n';
+        xml += '  </url>\n';
+
+        // Add Terms
+        xml += '  <url>\n';
+        xml += `    <loc>${origin}/terms</loc>\n`;
+        xml += '    <changefreq>monthly</changefreq>\n';
+        xml += '    <priority>0.5</priority>\n';
         xml += '  </url>\n';
 
         // Add Category Showcases (Advanced SEO)

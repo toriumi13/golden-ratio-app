@@ -8,6 +8,8 @@ import DeltaScreen from '../screens/DeltaScreen';
 
 import ShowcaseScreen from '../screens/ShowcaseScreen';
 import GuideScreen from '../screens/GuideScreen';
+import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
+import TermsOfServiceScreen from '../screens/TermsOfServiceScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -26,6 +28,8 @@ export default function AppNavigator() {
                 <Stack.Screen name="EditRecipe" component={EditRecipeScreen} options={{ title: 'レシピ編集' }} />
                 <Stack.Screen name="Delta" component={DeltaScreen} options={{ title: '比率の差分' }} />
                 <Stack.Screen name="Guide" component={GuideScreen} options={{ title: '使い方ガイド' }} />
+                <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ title: 'プライバシーポリシー' }} />
+                <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} options={{ title: '利用規約' }} />
             </Stack.Navigator>
         </NavigationContainer>
     );
