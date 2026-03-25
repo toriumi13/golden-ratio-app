@@ -61,3 +61,27 @@ export interface Ingredient {
   quantity: number;
   unit: string;
 }
+
+export interface PresetRecipe {
+    id: string;
+    name: string;
+    description: string;
+    category: string;
+    baseServings?: number;
+    sections: {
+        name: string;
+        ingredients: {
+            name: string;
+            quantity: number;
+            unit: string;
+        }[];
+    }[];
+    steps: string[];
+}
+export type UserPlan = 'free' | 'standard';
+
+export interface UserProfile {
+    uid: string;
+    plan: UserPlan;
+    isPremium: boolean;
+}

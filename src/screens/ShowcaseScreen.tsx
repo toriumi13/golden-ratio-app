@@ -15,7 +15,8 @@ import {
     IconButton,
     useTheme,
     Surface,
-    Button
+    Button,
+    Searchbar
 } from 'react-native-paper';
 import { getAllPublicRecipes, toggleLike, getLikeStatus } from '../store/repository';
 import { Recipe } from '../types';
@@ -28,7 +29,7 @@ import { ScrollView, Alert } from 'react-native';
 const ShowcaseScreen = ({ navigation }: any) => {
     const { width } = useWindowDimensions();
     const [recipes, setRecipes] = useState<Recipe[]>([]);
-    const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
     const [likedRecipes, setLikedRecipes] = useState<Record<string, boolean>>({});
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -42,7 +43,6 @@ const ShowcaseScreen = ({ navigation }: any) => {
         try {
             const data = await getAllPublicRecipes();
             setRecipes(data);
-            setFilteredRecipes(data);
 
             // Fetch like status for all visible recipes
             const statusMap: Record<string, boolean> = {};
@@ -72,7 +72,6 @@ const ShowcaseScreen = ({ navigation }: any) => {
             });
 
             setRecipes(prev => updateList(prev));
-            setFilteredRecipes(prev => updateList(prev));
         } catch (error: any) {
             Alert.alert('エラー', 'いいねの更新に失敗しました。ログインしているか確認してください。');
         }
@@ -80,17 +79,36 @@ const ShowcaseScreen = ({ navigation }: any) => {
 
     const handleCategorySelect = (categoryId: string | null) => {
         setSelectedCategoryId(categoryId);
-        if (categoryId === null) {
-            setFilteredRecipes(recipes);
-        } else {
-            setFilteredRecipes(recipes.filter(r => {
-                if (categoryId === 'others') {
-                    return r.category === 'others' || !r.category;
-                }
-                return r.category === categoryId;
-            }));
-        }
+        setSearchQuery(''); // Clear search when picking a category for focus
     };
+
+    const getFilteredRecipes = () => {
+        let results = recipes;
+
+        // 1. Category Filter (only if no search query OR if searching within category)
+        // If there's a search query, we show global results by default unless we want strict category search.
+        // Let's go with: if category is selected, search within it. If not, global search.
+        if (selectedCategoryId !== null) {
+            results = results.filter(r => {
+                if (selectedCategoryId === 'others') return r.category === 'others' || !r.category;
+                return r.category === selectedCategoryId;
+            });
+        }
+
+        // 2. Text Search Filter
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            results = results.filter(r => 
+                r.name.toLowerCase().includes(query) || 
+                (r.tags && r.tags.some(t => t.toLowerCase().includes(query)))
+            );
+        }
+
+        return results;
+    };
+
+    const filteredRecipes = getFilteredRecipes();
+    const isSearching = searchQuery.trim().length > 0;
 
     const renderRecipeCard = ({ item }: { item: Recipe }) => {
         const category = getCategoryById(item.category || 'others');
@@ -165,9 +183,11 @@ const ShowcaseScreen = ({ navigation }: any) => {
             <StatusBar barStyle="dark-content" />
             <View style={styles.header}>
                 <IconButton
-                    icon={selectedCategoryId ? "chevron-left" : "arrow-left"}
+                    icon={(selectedCategoryId || isSearching) ? "chevron-left" : "arrow-left"}
                     onPress={() => {
-                        if (selectedCategoryId) {
+                        if (isSearching) {
+                            setSearchQuery('');
+                        } else if (selectedCategoryId) {
                             handleCategorySelect(null);
                         } else {
                             navigation.goBack();
@@ -176,11 +196,22 @@ const ShowcaseScreen = ({ navigation }: any) => {
                     iconColor="#3E2723"
                 />
                 <Text style={styles.headerTitle}>
-                    {selectedCategoryId ? getCategoryById(selectedCategoryId).name : '黄金比ショーケース'}
+                    {isSearching ? '検索結果' : (selectedCategoryId ? getCategoryById(selectedCategoryId).name : '黄金比ショーケース')}
                 </Text>
             </View>
 
-            {selectedCategoryId === null ? (
+            <View style={styles.searchContainer}>
+                <Searchbar
+                    placeholder="名前やタグで検索"
+                    onChangeText={setSearchQuery}
+                    value={searchQuery}
+                    style={styles.searchbar}
+                    iconColor={theme.colors.primary}
+                    elevation={1}
+                />
+            </View>
+
+            {selectedCategoryId === null && !isSearching ? (
                 // --- LEVEL 1: FOLDER GRID ---
                 <ScrollView contentContainerStyle={styles.folderGridContent}>
                     <View style={styles.introSection}>
@@ -226,25 +257,36 @@ const ShowcaseScreen = ({ navigation }: any) => {
                     contentContainerStyle={styles.listContent}
                     ListHeaderComponent={() => (
                         <View style={styles.listHeader}>
-                            <TouchableOpacity
-                                style={styles.backToFolders}
-                                onPress={() => handleCategorySelect(null)}
-                            >
-                                <MaterialCommunityIcons name="folder-outline" size={16} color="#8D6E63" />
-                                <Text style={styles.backToFoldersText}>フォルダ一覧に戻る</Text>
-                            </TouchableOpacity>
+                            {(selectedCategoryId && !isSearching) ? (
+                                <TouchableOpacity
+                                    style={styles.backToFolders}
+                                    onPress={() => handleCategorySelect(null)}
+                                >
+                                    <MaterialCommunityIcons name="folder-outline" size={16} color="#8D6E63" />
+                                    <Text style={styles.backToFoldersText}>フォルダ一覧に戻る</Text>
+                                </TouchableOpacity>
+                            ) : isSearching && (
+                                <View style={styles.searchHeader}>
+                                    <Text style={styles.searchResultCount}>{filteredRecipes.length}件の見つかった研究</Text>
+                                </View>
+                            )}
                         </View>
                     )}
                     ListEmptyComponent={() => (
                         <View style={styles.centered}>
-                            <MaterialCommunityIcons name="book-open-variant" size={48} color="#D7CCC8" />
-                            <Text style={{ color: '#8D6E63', marginTop: 12 }}>このカテゴリーにはまだ公開レシピがありません</Text>
+                            <MaterialCommunityIcons name={isSearching ? "magnify-close" : "book-open-variant"} size={48} color="#D7CCC8" />
+                            <Text style={{ color: '#8D6E63', marginTop: 12, textAlign: 'center' }}>
+                                {isSearching ? `「${searchQuery}」に一致する\nレシピは見つかりませんでした` : "このカテゴリーにはまだ公開レシピがありません"}
+                            </Text>
                             <Button
                                 mode="text"
-                                onPress={() => handleCategorySelect(null)}
+                                onPress={() => {
+                                    setSearchQuery('');
+                                    handleCategorySelect(null);
+                                }}
                                 style={{ marginTop: 16 }}
                             >
-                                他のフォルダを見る
+                                {isSearching ? "検索をクリア" : "他のフォルダを見る"}
                             </Button>
                         </View>
                     )}
@@ -280,8 +322,25 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 8,
-        paddingVertical: 12,
+        paddingTop: 12,
         backgroundColor: '#F9F7F2',
+    },
+    searchContainer: {
+        paddingHorizontal: 16,
+        paddingBottom: 12,
+        backgroundColor: '#F9F7F2',
+    },
+    searchbar: {
+        borderRadius: 16,
+        backgroundColor: '#FFF',
+    },
+    searchHeader: {
+        marginBottom: 8,
+    },
+    searchResultCount: {
+        fontSize: 12,
+        color: '#8D6E63',
+        fontWeight: 'bold',
     },
     headerTitle: {
         fontSize: 20,

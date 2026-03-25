@@ -16,7 +16,7 @@ import {
 } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { db, auth } from './firebase';
-import { Recipe, Version, Section, Step, Ingredient } from '../types';
+import { Recipe, Version, Section, Step, Ingredient, UserProfile, UserPlan } from '../types';
 import { checkSubscriptionStatus } from './subscription';
 import { Platform } from 'react-native';
 
@@ -53,14 +53,6 @@ export const deleteRecipeImage = async (recipeId: string): Promise<void> => {
  */
 
 // --- Subscription Utilities ---
-
-export type UserPlan = 'free' | 'standard';
-
-export interface UserProfile {
-    uid: string;
-    plan: UserPlan;
-    isPremium: boolean;
-}
 
 /**
  * Gets the current user's plan.
