@@ -143,7 +143,7 @@ const ShowcaseScreen = ({ navigation }: any) => {
                                 <MaterialCommunityIcons name={category.icon as any} size={20} color={category.color} />
                             </View>
                             <View style={styles.titleContainer}>
-                                <Text style={styles.recipeName} numberOfLines={1}>{item.name}</Text>
+                                <Text style={styles.recipeName} numberOfLines={2}>{item.name}</Text>
                                 <View style={styles.metaRow}>
                                     <MaterialCommunityIcons name="calendar-clock" size={12} color="#8D6E63" />
                                     <Text style={styles.recipeDate}>
@@ -431,16 +431,17 @@ const styles = StyleSheet.create({
     },
     horizontalContainer: {
         flexDirection: 'row',
-        alignItems: 'center',
-        height: 100,
+        alignItems: 'stretch',
+        minHeight: 100,
     },
     sideImage: {
         width: 100,
-        height: 100,
+        height: '100%',
     },
     cardContent: {
         flex: 1,
         paddingHorizontal: 12,
+        paddingVertical: 12,
     },
     cardHeader: {
         flexDirection: 'row',

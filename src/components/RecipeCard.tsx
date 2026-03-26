@@ -73,15 +73,16 @@ const styles = StyleSheet.create({
     horizontalContainer: {
         flexDirection: 'row',
         alignItems: 'stretch',
-        height: 120,
+        minHeight: 120,
     },
     sideImage: {
         width: 120,
-        height: 120,
+        height: '100%',
     },
     cardContent: {
         flex: 1,
-        paddingVertical: 12,
+        paddingTop: 12,
+        paddingBottom: 16,
         paddingHorizontal: 16,
         justifyContent: 'space-between',
     },
