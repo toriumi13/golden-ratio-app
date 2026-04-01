@@ -6,7 +6,8 @@ import { UserProfile } from '../types';
 import LoginScreen from './LoginScreen';
 import Paywall from '../components/Paywall';
 import { auth } from '../store/firebase';
-import { getUserProfile, getPublicRecipeDetails, addSection, addIngredient, addStep, createRecipe } from '../store/repository';
+import { getUserProfile, getPublicRecipeDetails, addSection, addIngredient, addStep, createRecipe, isAdmin } from '../store/repository';
+import { seedOfficialRecipes } from '../store/seed';
 import { presentPaywall } from '../store/subscription';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Searchbar } from 'react-native-paper';
@@ -38,6 +39,7 @@ export default function HomeScreen() {
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [importData, setImportData] = useState<any>(null);
     const [isImporting, setIsImporting] = useState(false);
+    const [isSeeding, setIsSeeding] = useState(false);
     const [selectedTag, setSelectedTag] = useState<string | null>(null);
     const [allTags, setAllTags] = useState<string[]>([]);
 
@@ -167,6 +169,19 @@ export default function HomeScreen() {
         }
     };
 
+    const handleSeedRecipes = async () => {
+        setIsSeeding(true);
+        try {
+            await seedOfficialRecipes();
+            Alert.alert("完了", "公式レシピのシードが完了しました。");
+            loadRecipes();
+        } catch (e: any) {
+            Alert.alert("エラー", e.message);
+        } finally {
+            setIsSeeding(false);
+        }
+    };
+
     const mainRecipes = filteredRecipes.filter(r => !selectedTag || (r.tags && r.tags.includes(selectedTag!)));
 
     if (!auth.currentUser) {
@@ -221,6 +236,18 @@ export default function HomeScreen() {
                             iconColor={theme.colors.primary}
                             elevation={1}
                         />
+
+                        {isAdmin() && (
+                            <Button 
+                                mode="contained" 
+                                onPress={handleSeedRecipes} 
+                                loading={isSeeding}
+                                style={{ marginBottom: 16, backgroundColor: '#4E342E' }}
+                                icon="seed"
+                            >
+                                公式レシピをシード(管理者用)
+                            </Button>
+                        )}
 
                         <View style={styles.quickActionsRow}>
                             <TouchableOpacity style={styles.quickActionTile} onPress={() => navigation.navigate('Showcase')}>
