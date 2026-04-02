@@ -85,13 +85,10 @@ export default function HomeScreen() {
                 const sharedVersionId = params.get('versionId');
                 const sharedName = params.get('recipeName');
 
-                if (sharedRecipeId && sharedVersionId) {
-                    try {
-                        const version = await getPublicRecipeDetails(sharedRecipeId, sharedVersionId);
-                        if (version) {
-                            setImportData({ id: sharedRecipeId, name: sharedName || '共有されたレシピ', version });
-                        }
-                    } catch (e) { console.error(e); }
+                if (sharedRecipeId) {
+                    // Navigate to RecipeDetail directly in showcase mode
+                    // instead of showing the import dialog immediately.
+                    navigation.navigate('RecipeDetail', { recipeId: sharedRecipeId, fromShowcase: true });
                 }
 
                 const targetScreen = params.get('screen');

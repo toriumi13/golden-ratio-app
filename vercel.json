@@ -37,6 +37,15 @@
     ],
     "headers": [
         {
+            "source": "/ads.txt",
+            "headers": [
+                {
+                    "key": "Content-Type",
+                    "value": "text/plain"
+                }
+            ]
+        },
+        {
             "source": "/service-worker.js",
             "headers": [
                 {
