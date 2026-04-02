@@ -22,11 +22,11 @@ export default function RecipeDetailScreen() {
     const route = useRoute<any>();
     const navigation = useNavigation<any>();
     const theme = useTheme();
-    const { recipeId, fromShowcase } = route.params;
-
+    const { recipeId, versionId, fromShowcase } = route.params;
+    
     const [recipe, setRecipe] = useState<Recipe | null>(null);
     const [loading, setLoading] = useState(true);
-    const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+    const [selectedVersionId, setSelectedVersionId] = useState<string | null>(versionId || null);
 
     // Dialog for new version
     const [showNewVersionDialog, setShowNewVersionDialog] = useState(false);

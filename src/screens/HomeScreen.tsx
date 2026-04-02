@@ -88,7 +88,11 @@ export default function HomeScreen() {
                 if (sharedRecipeId) {
                     // Navigate to RecipeDetail directly in showcase mode
                     // instead of showing the import dialog immediately.
-                    navigation.navigate('RecipeDetail', { recipeId: sharedRecipeId, fromShowcase: true });
+                    navigation.navigate('RecipeDetail', { 
+                        recipeId: sharedRecipeId, 
+                        versionId: sharedVersionId,
+                        fromShowcase: true 
+                    });
                 }
 
                 const targetScreen = params.get('screen');
