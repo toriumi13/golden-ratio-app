@@ -97,7 +97,7 @@ export default function HomeScreen() {
 
                 const targetScreen = params.get('screen');
                 if (targetScreen) {
-                    const validScreens = ['Showcase', 'Guide', 'PrivacyPolicy', 'TermsOfService'];
+                    const validScreens = ['Showcase', 'Guide', 'PrivacyPolicy', 'TermsOfService', 'About', 'Contact'];
                     if (validScreens.includes(targetScreen)) {
                         navigation.navigate(targetScreen as any);
                     }

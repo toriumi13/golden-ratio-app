@@ -107,7 +107,6 @@ const GuideScreen = ({ navigation }: any) => {
                     </Card.Content>
                 </Card>
 
-                {/* Section 4: Showcase */}
                 <Card style={styles.card} elevation={1}>
                     <Card.Title
                         title="4. ショーケースで共有"
@@ -119,6 +118,49 @@ const GuideScreen = ({ navigation }: any) => {
                             完成した究極の比率は「公開」してショーケースに並べることができます。
                             他の研究者の比率を、自分のノートにインポートして試すことも可能です。
                         </Text>
+                    </Card.Content>
+                </Card>
+
+                {/* Section 5: Tips */}
+                <Card style={styles.card} elevation={1}>
+                    <Card.Title
+                        title="5. 黄金比を見つけるコツ"
+                        titleStyle={styles.cardTitle}
+                        left={(props) => <MaterialCommunityIcons name="lightbulb-on" size={24} color="#C5A059" />}
+                    />
+                    <Card.Content>
+                        <Text style={styles.text}>
+                            ● **まずは1:1から**: 基本的な調味料（醤油とみりん等）を1:1で合わせ、そこから自分の好みに合わせて片方を0.1ずつ増やしてみましょう。{"\n"}{"\n"}
+                            ● **メモ機能の活用**: 「少し尖った味になった」などの感想をメモに残すことで、次のバージョンの指針になります。{"\n"}{"\n"}
+                            ● **素材の水分に注意**: 食材（肉や野菜）から出る水分量も考慮し、加熱時間との関係を比率に含めるのが上級者のテクニックです。
+                        </Text>
+                    </Card.Content>
+                </Card>
+
+                {/* Section 6: FAQ */}
+                <Card style={styles.card} elevation={1}>
+                    <Card.Title
+                        title="6. よくある質問"
+                        titleStyle={styles.cardTitle}
+                        left={(props) => <MaterialCommunityIcons name="help-circle" size={24} color="#C5A059" />}
+                    />
+                    <Card.Content>
+                        <List.Accordion
+                            title="データの保存先は？"
+                            left={props => <List.Icon {...props} icon="cloud-check" color="#C5A059" />}
+                            titleStyle={{ fontSize: 13, color: '#3E2723' }}
+                            style={{ backgroundColor: '#FFF' }}
+                        >
+                            <List.Item title="クラウドに安全に保存されます。" titleStyle={{ fontSize: 12 }} />
+                        </List.Accordion>
+                        <List.Accordion
+                            title="オフラインでも使える？"
+                            left={props => <List.Icon {...props} icon="wifi-off" color="#C5A059" />}
+                            titleStyle={{ fontSize: 13, color: '#3E2723' }}
+                            style={{ backgroundColor: '#FFF' }}
+                        >
+                            <List.Item title="閲覧は可能ですが、編集には通信が必要です。" titleStyle={{ fontSize: 12 }} />
+                        </List.Accordion>
                     </Card.Content>
                 </Card>
 

@@ -241,10 +241,11 @@ const ShowcaseScreen = ({ navigation }: any) => {
                             <MaterialCommunityIcons name="auto-fix" size={16} color="#FFF" />
                             <Text style={styles.introBadgeText}>Research Results</Text>
                         </View>
-                        <Text style={styles.introTitle}>比率が導き出す「究極の一皿」</Text>
+                        <Text style={styles.introTitle}>比率が導き出す「究極の一皿」へ</Text>
                         <Text style={styles.introText}>
-                            研究者たちが公開した「失敗しない黄金比」。
-                            比率をチェックして、あなたの料理に取り入れましょう。
+                            料理の美味しさは偶然ではなく、卓越した「調味料の比率」から生まれます。{"\n"}{"\n"}
+                            「黄金比ショーケース」では、多くの研究者たちが試行錯誤の末に辿り着いた「失敗しない黄金比」を公開しています。和食の基本である「1:1:1」から、専門店の味を再現するための複雑な配合まで。{"\n"}{"\n"}
+                            比率をチェックして、あなたの「一生モノのレシピ」を磨き上げるヒントにしてください。
                         </Text>
                     </View>
 
@@ -320,6 +321,14 @@ const ShowcaseScreen = ({ navigation }: any) => {
                             <Text style={styles.footerDivider}>|</Text>
                             <TouchableOpacity onPress={() => navigation.navigate('TermsOfService')}>
                                 <Text style={styles.footerLinkText}>利用規約</Text>
+                            </TouchableOpacity>
+                            <Text style={styles.footerDivider}>|</Text>
+                            <TouchableOpacity onPress={() => navigation.navigate('About')}>
+                                <Text style={styles.footerLinkText}>このサイトについて</Text>
+                            </TouchableOpacity>
+                            <Text style={styles.footerDivider}>|</Text>
+                            <TouchableOpacity onPress={() => navigation.navigate('Contact')}>
+                                <Text style={styles.footerLinkText}>お問い合わせ</Text>
                             </TouchableOpacity>
                         </View>
                     )}

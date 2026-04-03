@@ -6,6 +6,9 @@ import RecipeDetailScreen from '../screens/RecipeDetailScreen';
 import EditRecipeScreen from '../screens/EditRecipeScreen';
 import DeltaScreen from '../screens/DeltaScreen';
 
+import { auth } from '../store/firebase';
+import AboutScreen from '../screens/AboutScreen';
+import ContactScreen from '../screens/ContactScreen';
 import ShowcaseScreen from '../screens/ShowcaseScreen';
 import GuideScreen from '../screens/GuideScreen';
 import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
@@ -30,6 +33,8 @@ export default function AppNavigator() {
                 <Stack.Screen name="Guide" component={GuideScreen} options={{ title: '使い方ガイド' }} />
                 <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ title: 'プライバシーポリシー' }} />
                 <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} options={{ title: '利用規約' }} />
+                <Stack.Screen name="About" component={AboutScreen} options={{ title: ' About' }} />
+                <Stack.Screen name="Contact" component={ContactScreen} options={{ title: ' Contact' }} />
             </Stack.Navigator>
         </NavigationContainer>
     );

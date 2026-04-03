@@ -68,9 +68,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         xml += '    <priority>0.5</priority>\n';
         xml += '  </url>\n';
 
-        // Add Terms
         xml += '  <url>\n';
         xml += `    <loc>${origin}/terms</loc>\n`;
+        xml += '    <changefreq>monthly</changefreq>\n';
+        xml += '    <priority>0.5</priority>\n';
+        xml += '  </url>\n';
+        
+        // Add About
+        xml += '  <url>\n';
+        xml += `    <loc>${origin}/about</loc>\n`;
+        xml += '    <changefreq>monthly</changefreq>\n';
+        xml += '    <priority>0.5</priority>\n';
+        xml += '  </url>\n';
+        
+        // Add Contact
+        xml += '  <url>\n';
+        xml += `    <loc>${origin}/contact</loc>\n`;
         xml += '    <changefreq>monthly</changefreq>\n';
         xml += '    <priority>0.5</priority>\n';
         xml += '  </url>\n';

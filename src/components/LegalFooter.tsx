@@ -15,6 +15,14 @@ export const LegalFooter: React.FC<LegalFooterProps> = ({ onNavigate }) => {
             <TouchableOpacity onPress={() => onNavigate('TermsOfService')}>
                 <Text style={styles.footerLinkText}>利用規約</Text>
             </TouchableOpacity>
+            <Text style={styles.footerDivider}>|</Text>
+            <TouchableOpacity onPress={() => onNavigate('About')}>
+                <Text style={styles.footerLinkText}>このサイトについて</Text>
+            </TouchableOpacity>
+            <Text style={styles.footerDivider}>|</Text>
+            <TouchableOpacity onPress={() => onNavigate('Contact')}>
+                <Text style={styles.footerLinkText}>お問い合わせ</Text>
+            </TouchableOpacity>
         </View>
     );
 };
