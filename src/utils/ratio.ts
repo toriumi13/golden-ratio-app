@@ -29,9 +29,19 @@ export const getVirtualWeight = (quantity: number, unit: string, name: string = 
         return quantity * (density?.cup ? density.cup : 200);
     }
 
-    // 3. Large standalone items (Onion, Egg, etc.) ~ 150g-200g
-    if (u.includes('個') || u.includes('玉') || u.includes('かけ') || u.includes('片') || u.includes('個分')) {
+    // 3. Small pieces (garlic clove, ginger knob, etc.) ~ 10g
+    if (u.includes('かけ') || u === '片') {
+        return quantity * 10;
+    }
+
+    // 4. Large standalone items (Onion, Egg, etc.) ~ 150g
+    if (u.includes('個') || u.includes('玉') || u.includes('個分')) {
         return quantity * 150;
+    }
+
+    // 片 in compound units (e.g. "一片") - still small
+    if (u.includes('片')) {
+        return quantity * 10;
     }
 
     // 4. Long items (Carrot, Cucumber, Green onion) ~ 100g
