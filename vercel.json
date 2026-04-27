@@ -1,6 +1,12 @@
 {
     "buildCommand": "npm run build:web",
     "outputDirectory": "dist",
+    "crons": [
+        {
+            "path": "/api/cron-daily-recipe",
+            "schedule": "0 0 * * *"
+        }
+    ],
     "rewrites": [
         {
             "source": "/showcase",
