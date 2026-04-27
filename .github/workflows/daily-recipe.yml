@@ -1,0 +1,17 @@
+name: 毎日レシピ自動投稿
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 毎日 0:00 UTC = 日本時間 9:00
+  workflow_dispatch:       # 手動実行ボタンも有効化
+
+jobs:
+  post-daily-recipe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: レシピ生成・ショーケース掲載・X投稿
+        run: |
+          curl --fail -s -o response.json \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://golden-ratio-app-zeta.vercel.app/api/cron-daily-recipe
+          cat response.json
