@@ -2,7 +2,6 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import * as admin from 'firebase-admin';
 import Anthropic from '@anthropic-ai/sdk';
 import { TwitterApi } from 'twitter-api-v2';
-import { v4 as uuidv4 } from 'uuid';
 
 if (!admin.apps.length) {
     try {
@@ -87,17 +86,17 @@ async function generateRecipe(): Promise<GeneratedRecipe> {
 }
 
 async function saveToFirestore(recipe: GeneratedRecipe): Promise<string> {
-    const recipeId = uuidv4();
-    const versionId = uuidv4();
+    const recipeId = crypto.randomUUID();
+    const versionId = crypto.randomUUID();
     const now = new Date().toISOString();
 
     const sections = recipe.sections.map(sec => ({
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         versionId,
         name: sec.name,
         orderIndex: 0,
         ingredients: sec.ingredients.map((ing, i) => ({
-            id: uuidv4(),
+            id: crypto.randomUUID(),
             name: ing.name,
             quantity: ing.quantity,
             unit: ing.unit,
@@ -106,7 +105,7 @@ async function saveToFirestore(recipe: GeneratedRecipe): Promise<string> {
     }));
 
     const steps = recipe.steps.map((desc, i) => ({
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         versionId,
         description: desc,
         orderIndex: i,
