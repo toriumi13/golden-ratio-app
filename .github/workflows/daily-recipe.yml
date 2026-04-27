@@ -11,7 +11,12 @@ jobs:
     steps:
       - name: レシピ生成・ショーケース掲載・X投稿
         run: |
-          curl --fail -s -o response.json \
+          HTTP_STATUS=$(curl -s -o response.json -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            https://golden-ratio-app-zeta.vercel.app/api/cron-daily-recipe
+            https://golden-ratio-app-zeta.vercel.app/api/cron-daily-recipe)
+          echo "HTTP Status: $HTTP_STATUS"
+          echo "Response:"
           cat response.json
+          if [ "$HTTP_STATUS" != "200" ]; then
+            exit 1
+          fi
