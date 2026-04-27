@@ -174,32 +174,40 @@ ${showcaseUrl}
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    // Vercel CronはAuthorizationヘッダーにCRON_SECRETを付与して呼び出す
     const authHeader = req.headers.authorization;
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
 
+    // 環境変数チェック
+    const missingVars = [
+        'ANTHROPIC_API_KEY',
+        'X_API_KEY', 'X_API_SECRET', 'X_ACCESS_TOKEN', 'X_ACCESS_TOKEN_SECRET',
+        'FIREBASE_SERVICE_ACCOUNT',
+    ].filter(k => !process.env[k]);
+
+    if (missingVars.length > 0) {
+        return res.status(500).json({ error: `Missing env vars: ${missingVars.join(', ')}` });
+    }
+
+    const log: string[] = [];
+
     try {
-        console.log('[CRON] Starting daily recipe generation...');
-
+        log.push('step1: generating recipe...');
         const recipe = await generateRecipe();
-        console.log(`[CRON] Generated recipe: ${recipe.name}`);
+        log.push(`step1: done - ${recipe.name}`);
 
+        log.push('step2: saving to Firestore...');
         const recipeId = await saveToFirestore(recipe);
-        console.log(`[CRON] Saved to Firestore: ${recipeId}`);
+        log.push(`step2: done - ${recipeId}`);
 
+        log.push('step3: posting to X...');
         await postToX(recipe, recipeId);
-        console.log('[CRON] Posted to X');
+        log.push('step3: done');
 
-        return res.status(200).json({
-            success: true,
-            recipe: recipe.name,
-            recipeId,
-        });
+        return res.status(200).json({ success: true, recipe: recipe.name, recipeId, log });
 
     } catch (e: any) {
-        console.error('[CRON] Error:', e.message);
-        return res.status(500).json({ error: e.message });
+        return res.status(500).json({ error: e.message, stack: e.stack, log });
     }
 }
