@@ -50,7 +50,7 @@
         },
         {
             "source": "/recipes/:id",
-            "destination": "/api/recipe-detail?id=:id"
+            "destination": "/api/recipes?id=:id"
         },
         {
             "source": "/(.*)",
