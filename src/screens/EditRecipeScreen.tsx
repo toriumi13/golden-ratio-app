@@ -517,7 +517,7 @@ export default function EditRecipeScreen() {
 
                 <Text style={styles.mainSectionTitle}>材料・グループ</Text>
                 {currentVersion?.sections?.map((section) => {
-                    const maxWeight = Math.max(...(section.ingredients?.map(i => getVirtualWeight(i.quantity, i.unit)) || [1]));
+                    const maxWeight = Math.max(...(section.ingredients?.map(i => getVirtualWeight(i.quantity, i.unit, i.name)) || [1]));
                     return (
                         <Card key={section.id} style={styles.sectionCard} elevation={1}>
                             <View style={styles.sectionHeaderRow}>
@@ -570,7 +570,7 @@ export default function EditRecipeScreen() {
                                             </View>
                                         </View>
                                         <View style={styles.ratioBarBg}>
-                                            <View style={[styles.ratioBarFill, { width: getRatioWidth(ing.quantity, ing.unit, maxWeight) as any }]} />
+                                            <View style={[styles.ratioBarFill, { width: getRatioWidth(ing.quantity, ing.unit, ing.name, maxWeight) as any }]} />
                                         </View>
                                     </View>
                                 ))}

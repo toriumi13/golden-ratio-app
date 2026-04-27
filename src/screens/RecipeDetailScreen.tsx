@@ -11,7 +11,8 @@ import { presentPaywall } from '../store/subscription';
 import QRCode from 'react-native-qrcode-svg';
 import * as Clipboard from 'expo-clipboard';
 import { toPng } from 'html-to-image';
-import { getVirtualWeight, getRatioWidth } from '../utils/ratio';
+import { getVirtualWeight, getRatioWidth, calculateTasteScores } from '../utils/ratio';
+import { TasteRadarChart } from '../components/TasteRadarChart';
 import { getDefaultImageForCategory } from '../constants/defaultImages';
 import { getCategoryById } from '../constants/categories';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -580,7 +581,7 @@ export default function RecipeDetailScreen() {
                                 />
                                 <Card.Content>
                                     {section.ingredients?.map((ing) => {
-                                        const maxWeight = Math.max(...(section.ingredients?.map(i => getVirtualWeight(i.quantity, i.unit || '')) || [1]));
+                                        const maxWeight = Math.max(...(section.ingredients?.map(i => getVirtualWeight(i.quantity, i.unit || '', i.name)) || [1]));
                                         return (
                                             <View key={ing.id} style={{ marginBottom: 8 }}>
                                                 <View style={styles.captureIngRow}>
@@ -594,7 +595,7 @@ export default function RecipeDetailScreen() {
                                                     <View style={styles.ratioBarContainer}>
                                                         <View style={[
                                                             styles.ratioBar,
-                                                            { width: getRatioWidth(ing.quantity, ing.unit || '', maxWeight) as any }
+                                                            { width: getRatioWidth(ing.quantity, ing.unit || '', ing.name, maxWeight) as any }
                                                         ]} />
                                                     </View>
                                                 )}
@@ -685,6 +686,15 @@ export default function RecipeDetailScreen() {
                     )}
                 </View>
 
+                {/* Radar Chart Analysis */}
+                {currentVersion?.sections && (
+                    <TasteRadarChart 
+                        data={calculateTasteScores(
+                            currentVersion.sections.flatMap(s => s.ingredients || [])
+                        )} 
+                    />
+                )}
+
                 {/* Ingredients Section */}
                 <Text variant="titleMedium" style={styles.mainSectionTitle}>材料</Text>
 
@@ -694,7 +704,7 @@ export default function RecipeDetailScreen() {
                     const maxWeight = Math.max(...(section.ingredients?.map(i => {
                         const baseVal = i.quantity * ratio;
                         const actualQty = isStandardScaler ? baseVal * scalerRelativeFactor : baseVal;
-                        return getVirtualWeight(actualQty, i.unit);
+                        return getVirtualWeight(actualQty, i.unit, i.name);
                     }) || [1]));
 
                     return (
@@ -737,8 +747,9 @@ export default function RecipeDetailScreen() {
                                         </View>
                                         {/* Ratio Bar */}
                                         <View style={styles.ratioBarBg}>
-                                            <View style={[styles.ratioBarFill, { width: getRatioWidth(displayValue, ing.unit, maxWeight) as any }]} />
+                                            <View style={[styles.ratioBarFill, { width: getRatioWidth(displayValue, ing.unit, ing.name, maxWeight) as any }]} />
                                         </View>
+
                                     </View>
                                 );
                             })}
