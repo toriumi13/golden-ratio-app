@@ -89,7 +89,7 @@ const GuideScreen = ({ navigation }: any) => {
                         </Text>
                         <Text style={styles.text}>
                             レシピを直接書き換えるのではなく「新しいバージョン」を作成しましょう。
-                            過去の配合と今の配合を比較（デルタ表示）し、**差分（何が変わったか）**を自動で分かりやすく表示します。どう味が進化したかを一目で追跡できます。
+                            過去の配合と今の配合を比較（デルタ表示）し、<Text style={styles.bold}>差分（何が変わったか）</Text>を自動で分かりやすく表示します。どう味が進化したかを一目で追跡できます。
                         </Text>
                         <View style={styles.diffMockup}>
                             <View style={styles.diffRow}>
@@ -130,9 +130,13 @@ const GuideScreen = ({ navigation }: any) => {
                     />
                     <Card.Content>
                         <Text style={styles.text}>
-                            ● **まずは1:1から**: 基本的な調味料（醤油とみりん等）を1:1で合わせ、そこから自分の好みに合わせて片方を0.1ずつ増やしてみましょう。{"\n"}{"\n"}
-                            ● **メモ機能の活用**: 「少し尖った味になった」などの感想をメモに残すことで、次のバージョンの指針になります。{"\n"}{"\n"}
-                            ● **素材の水分に注意**: 食材（肉や野菜）から出る水分量も考慮し、加熱時間との関係を比率に含めるのが上級者のテクニックです。
+                            <Text style={styles.bullet}>● </Text><Text style={styles.bold}>まずは1:1から</Text>: 基本的な調味料（醤油とみりん等）を1:1で合わせ、そこから自分の好みに合わせて片方を0.1ずつ増やしてみましょう。
+                        </Text>
+                        <Text style={styles.text}>
+                            <Text style={styles.bullet}>● </Text><Text style={styles.bold}>メモ機能の活用</Text>: 「少し尖った味になった」などの感想をメモに残すことで、次のバージョンの指針になります。
+                        </Text>
+                        <Text style={styles.text}>
+                            <Text style={styles.bullet}>● </Text><Text style={styles.bold}>素材の水分に注意</Text>: 食材（肉や野菜）から出る水分量も考慮し、加熱時間との関係を比率に含めるのが上級者のテクニックです。
                         </Text>
                     </Card.Content>
                 </Card>
@@ -235,6 +239,14 @@ const styles = StyleSheet.create({
         lineHeight: 22,
         color: '#5D4037',
         marginBottom: 12,
+    },
+    bold: {
+        fontWeight: 'bold',
+        color: '#3E2723',
+    },
+    bullet: {
+        color: '#C5A059',
+        fontWeight: 'bold',
     },
     exampleRatio: {
         flexDirection: 'row',

@@ -98,6 +98,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             xml += '  </url>\n';
         }
 
+        // Add preset recipe pages
+        const { PRESET_RECIPES } = require('../src/data/presets');
+        xml += '  <url>\n';
+        xml += `    <loc>${origin}/recipes</loc>\n`;
+        xml += '    <changefreq>weekly</changefreq>\n';
+        xml += '    <priority>0.9</priority>\n';
+        xml += '  </url>\n';
+        for (const preset of PRESET_RECIPES) {
+            xml += '  <url>\n';
+            xml += `    <loc>${origin}/recipes/${preset.id}</loc>\n`;
+            xml += '    <changefreq>monthly</changefreq>\n';
+            xml += '    <priority>0.8</priority>\n';
+            xml += '  </url>\n';
+        }
+
         // Add each public recipe
         for (const recipe of publicRecipes) {
             // IMPORTANT: XML must escape '&' as '&amp;' in URLs

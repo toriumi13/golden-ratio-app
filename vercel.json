@@ -39,6 +39,14 @@
             "destination": "/api/sitemap"
         },
         {
+            "source": "/recipes",
+            "destination": "/api/recipes"
+        },
+        {
+            "source": "/recipes/:id",
+            "destination": "/api/recipe-detail?id=:id"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }
