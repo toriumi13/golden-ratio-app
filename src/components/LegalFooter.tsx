@@ -1,28 +1,40 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 
 interface LegalFooterProps {
     onNavigate: (screen: string) => void;
 }
 
 export const LegalFooter: React.FC<LegalFooterProps> = ({ onNavigate }) => {
+    const LinkItem = ({ label, screen, path }: { label: string, screen: string, path: string }) => (
+        <Text
+            style={styles.footerLinkText}
+            accessibilityRole="link"
+            href={path}
+            onPress={(e: any) => {
+                // On web, prevent default to use SPA navigation unless it's a special click
+                if (Platform.OS === 'web') {
+                    if (e.ctrlKey || e.metaKey || e.shiftKey || (e.button && e.button !== 0)) {
+                        return;
+                    }
+                    e.preventDefault();
+                }
+                onNavigate(screen);
+            }}
+        >
+            {label}
+        </Text>
+    );
+
     return (
         <View style={styles.footerLinks}>
-            <TouchableOpacity onPress={() => onNavigate('PrivacyPolicy')}>
-                <Text style={styles.footerLinkText}>プライバシーポリシー</Text>
-            </TouchableOpacity>
+            <LinkItem label="プライバシーポリシー" screen="PrivacyPolicy" path="/privacy" />
             <Text style={styles.footerDivider}>|</Text>
-            <TouchableOpacity onPress={() => onNavigate('TermsOfService')}>
-                <Text style={styles.footerLinkText}>利用規約</Text>
-            </TouchableOpacity>
+            <LinkItem label="利用規約" screen="TermsOfService" path="/terms" />
             <Text style={styles.footerDivider}>|</Text>
-            <TouchableOpacity onPress={() => onNavigate('About')}>
-                <Text style={styles.footerLinkText}>このサイトについて</Text>
-            </TouchableOpacity>
+            <LinkItem label="このサイトについて" screen="About" path="/about" />
             <Text style={styles.footerDivider}>|</Text>
-            <TouchableOpacity onPress={() => onNavigate('Contact')}>
-                <Text style={styles.footerLinkText}>お問い合わせ</Text>
-            </TouchableOpacity>
+            <LinkItem label="お問い合わせ" screen="Contact" path="/contact" />
         </View>
     );
 };
