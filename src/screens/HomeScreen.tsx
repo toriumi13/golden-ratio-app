@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, FlatList, StyleSheet, useWindowDimensions, Alert, Platform, TouchableOpacity, ScrollView } from 'react-native';
+import { View, FlatList, StyleSheet, useWindowDimensions, Alert, Platform, TouchableOpacity, ScrollView, Linking } from 'react-native';
 import { Appbar, useTheme, Surface, Button, Portal, Dialog, Text, IconButton } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { UserProfile } from '../types';
@@ -280,6 +280,20 @@ export default function HomeScreen() {
                             </TouchableOpacity>
                         </View>
 
+                        <TouchableOpacity
+                            style={styles.recipeBanner}
+                            onPress={() => Linking.openURL('/recipes')}
+                            activeOpacity={0.8}
+                        >
+                            <Surface style={styles.recipeBannerSurface} elevation={1}>
+                                <View>
+                                    <Text style={styles.recipeBannerTitle}>📚 黄金比プリセットレシピ集</Text>
+                                    <Text style={styles.recipeBannerSub}>10品の黄金比を無料公開中。人数分の分量も自動計算できます</Text>
+                                </View>
+                                <MaterialCommunityIcons name="chevron-right" size={24} color="#C5A059" />
+                            </Surface>
+                        </TouchableOpacity>
+
                         <View style={styles.sectionHeaderRow}>
                             <Text style={styles.sectionTitle}>研究ノート</Text>
                             <Text style={styles.sectionCount}>{recipes.length}件</Text>
@@ -352,6 +366,10 @@ const styles = StyleSheet.create({
     actionTitle: { color: '#FFF', fontSize: 15, fontWeight: 'bold', marginTop: 4 },
     actionSubtitle: { color: 'rgba(255, 255, 255, 0.7)', fontSize: 10, marginTop: 2 },
     actionIconWrap: { position: 'absolute', bottom: -10, right: -10 },
+    recipeBanner: { marginBottom: 20 },
+    recipeBannerSurface: { borderRadius: 12, padding: 16, backgroundColor: '#FBF9F5', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    recipeBannerTitle: { fontWeight: 'bold', color: '#4E342E', fontSize: 15 },
+    recipeBannerSub: { color: '#8C7853', fontSize: 12, marginTop: 4 },
     sectionHeaderRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 12, gap: 8 },
     sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#4E342E' },
     sectionCount: { fontSize: 12, color: '#8C7853' },
