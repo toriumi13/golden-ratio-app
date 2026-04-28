@@ -92,13 +92,23 @@ function renderDetail(origin: string, id: string): string | null {
     const description = `${recipe.name}の黄金比レシピ。${recipe.description}材料${recipe.sections.reduce((s, sec) => s + sec.ingredients.length, 0)}種、${recipe.steps.length}ステップで作れます。`;
     const categoryColor = CATEGORY_COLORS[recipe.category] || '#C5A059';
 
-    const sectionsHtml = recipe.sections.map(section => {
+    const baseServings = recipe.baseServings || 2;
+    const scalerHtml = `
+<div style="background:#FFF8F0;border:1px solid #FFE082;border-radius:12px;padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+  <span style="font-weight:bold;color:#5D4037;font-size:0.9em;white-space:nowrap;">👥 人数で計算：</span>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    ${[1, 2, 3, 4, 6].map(s => `<button class="scale-btn${s === baseServings ? ' scale-active' : ''}" onclick="scaleTo(${s},this)">${s}人前</button>`).join('')}
+  </div>
+  <span style="font-size:0.82em;color:#BCAAA4;">（基準: ${baseServings}人前）</span>
+</div>`;
+
+    const sectionsHtml = recipe.sections.map((section, sectionIdx) => {
         const total = section.ingredients.reduce((sum, ing) => sum + (ing.quantity || 0), 0);
-        const rows = section.ingredients.map(ing => {
+        const rows = section.ingredients.map((ing, ingIdx) => {
             const ratio = total > 0 && ing.quantity > 0 ? (ing.quantity / total * 100).toFixed(0) : null;
             return `<tr>
         <td style="padding:10px 12px;border-bottom:1px solid #F2EFE9;font-weight:500;">${ing.name}</td>
-        <td style="padding:10px 12px;border-bottom:1px solid #F2EFE9;text-align:right;color:#5D4037;">${ing.quantity > 0 ? `${ing.quantity} ${ing.unit}` : ing.unit}</td>
+        <td id="qty-${sectionIdx}-${ingIdx}" data-base="${ing.quantity}" data-unit="${ing.unit}" style="padding:10px 12px;border-bottom:1px solid #F2EFE9;text-align:right;color:#5D4037;">${ing.quantity > 0 ? `${ing.quantity} ${ing.unit}` : ing.unit}</td>
         ${ratio ? `<td style="padding:10px 12px;border-bottom:1px solid #F2EFE9;text-align:right;"><div style="background:#F5F5F5;border-radius:4px;height:8px;width:80px;display:inline-block;vertical-align:middle;overflow:hidden;"><div style="background:#C5A059;height:100%;width:${ratio}%;"></div></div></td>` : '<td></td>'}
       </tr>`;
         }).join('');
@@ -145,7 +155,11 @@ function renderDetail(origin: string, id: string): string | null {
   <script type="application/ld+json">
   {"@context":"https://schema.org","@type":"Recipe","name":"${recipe.name}","description":"${recipe.description}","recipeCategory":"${recipe.category}","recipeYield":"${recipe.baseServings ? recipe.baseServings + '人前' : '適量'}","recipeInstructions":[${recipe.steps.map((s, i) => `{"@type":"HowToStep","position":${i + 1},"text":"${s.replace(/"/g, '\\"')}"}`).join(',')}],"publisher":{"@type":"Organization","name":"黄金比のレシピ帳"}}
   </script>
-  <style>${COMMON_STYLES}</style>
+  <style>${COMMON_STYLES}
+    .scale-btn { padding:7px 14px;border-radius:8px;border:1px solid #FFE082;cursor:pointer;font-weight:bold;background:#FFF3E0;color:#C5A059;font-size:0.88em;transition:background 0.15s; }
+    .scale-btn.scale-active { background:#C5A059;color:#FFF;border-color:#C5A059; }
+    .scale-btn:hover:not(.scale-active) { background:#FFE0B2; }
+  </style>
 </head>
 <body>
 ${nav(origin)}
@@ -164,6 +178,7 @@ ${nav(origin)}
   </div>
   <h2>材料と黄金比</h2>
   <p>下の表の「比率」列は、同じセクション内での調味料の割合を示しています。この比率を維持すれば、分量を何倍にしても同じ味を再現できます。</p>
+  ${scalerHtml}
   ${sectionsHtml}
   <h2 style="margin-top:40px;">作り方</h2>
   <ol style="list-style:none;padding:0;">${stepsHtml}</ol>
@@ -181,6 +196,20 @@ ${nav(origin)}
   </div>
 </div>
 ${footer(new Date().getFullYear())}
+<script>
+var BASE_SERVINGS = ${baseServings};
+function scaleTo(n, btn) {
+  var f = n / BASE_SERVINGS;
+  document.querySelectorAll('[data-base]').forEach(function(el) {
+    var b = parseFloat(el.getAttribute('data-base'));
+    if (!b) return;
+    var v = b * f;
+    el.textContent = Math.round(v * 10) / 10 + ' ' + el.getAttribute('data-unit');
+  });
+  document.querySelectorAll('.scale-btn').forEach(function(b) { b.classList.remove('scale-active'); });
+  btn.classList.add('scale-active');
+}
+</script>
 </body>
 </html>`;
 }
