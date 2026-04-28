@@ -27,6 +27,8 @@ interface GeneratedRecipe {
         ingredients: { name: string; quantity: number; unit: string }[];
     }[];
     steps: string[];
+    tweetRatioLabel: string;
+    tweetRatioText: string;
 }
 
 async function generateRecipe(): Promise<GeneratedRecipe> {
@@ -57,7 +59,9 @@ async function generateRecipe(): Promise<GeneratedRecipe> {
       ]
     }
   ],
-  "steps": ["手順1", "手順2", "手順3"]
+  "steps": ["手順1", "手順2", "手順3"],
+  "tweetRatioLabel": "強調するセクション名（例：タレの黄金比）",
+  "tweetRatioText": "比率テキスト（例：醤油2：みりん2：酒1）"
 }`
         }]
     });
@@ -145,7 +149,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const recipe = await generateRecipe();
         const recipeId = await saveToFirestore(recipe);
 
-        return res.status(200).json({ success: true, recipe: recipe.name, recipeId });
+        const tweet = `🍳 本日の黄金比レシピ
+
+「${recipe.name}」
+
+${recipe.tweetRatioLabel}：
+${recipe.tweetRatioText}
+
+${recipe.description}
+
+比率を記録して自分だけのレシピに📝
+https://golden-ratio-app-zeta.vercel.app/showcase
+
+#料理 #黄金比 #レシピ #自炊`;
+
+        return res.status(200).json({ success: true, recipe: recipe.name, recipeId, tweet });
 
     } catch (e: any) {
         return res.status(500).json({ error: e.message });
