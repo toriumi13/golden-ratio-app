@@ -38,8 +38,8 @@ function renderList(origin: string): string {
         return `<span style="display:inline-block;background:${color}15;color:${color};padding:4px 12px;border-radius:20px;font-size:0.85em;font-weight:bold;margin:4px;">${cat} ${count}品</span>`;
     }).join('');
 
-    const title = "黄金比レシピ集 | 黄金比のレシピ帳";
-    const description = `和食・洋食・中華・イタリアン・スイーツなど${PRESET_RECIPES.length}種類の黄金比レシピを公開中。照り焼き・唐揚げ・ハンバーグ・カルボナーラなど人気料理の黄金比率を学べます。`;
+    const title = "料理の黄金比 計算・調味料比率一覧 | 黄金比のレシピ帳";
+    const description = `和食・洋食・中華・イタリアン・スイーツなど${PRESET_RECIPES.length}品の黄金比レシピ。照り焼き・唐揚げ・ハンバーグなど人気料理の調味料比率と分量を1〜6人前で自動計算できます。`;
 
     return `<!DOCTYPE html>
 <html lang="ja">
@@ -88,8 +88,8 @@ function renderDetail(origin: string, id: string): string | null {
     const recipe = PRESET_RECIPES.find(r => r.id === id);
     if (!recipe) return null;
 
-    const title = `${recipe.name}の黄金比レシピ | 黄金比のレシピ帳`;
-    const description = `${recipe.name}の黄金比レシピ。${recipe.description}材料${recipe.sections.reduce((s, sec) => s + sec.ingredients.length, 0)}種、${recipe.steps.length}ステップで作れます。`;
+    const title = `${recipe.name}の黄金比 計算・分量早見表 | 黄金比のレシピ帳`;
+    const description = `${recipe.name}の黄金比と調味料の分量を計算できます。${recipe.baseServings || 2}人前基準で1〜6人前に自動スケール対応。${recipe.description}材料${recipe.sections.reduce((s, sec) => s + sec.ingredients.length, 0)}種の比率を覚えれば何人前でも同じ味を再現できます。`;
     const categoryColor = CATEGORY_COLORS[recipe.category] || '#C5A059';
 
     const baseServings = recipe.baseServings || 2;
