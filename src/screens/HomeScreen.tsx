@@ -250,6 +250,24 @@ export default function HomeScreen() {
                             </Button>
                         )}
 
+                        <TouchableOpacity
+                            style={styles.kondateBannerWrap}
+                            onPress={() => navigation.navigate('Kondate')}
+                            activeOpacity={0.85}
+                        >
+                            <Surface style={styles.kondateBanner} elevation={3}>
+                                <View>
+                                    <View style={styles.aiBadge}>
+                                        <MaterialCommunityIcons name="robot-outline" size={11} color="#fff" />
+                                        <Text style={styles.aiBadgeText}>AI</Text>
+                                    </View>
+                                    <Text style={styles.kondateBannerTitle}>今夜の献立、AIに相談</Text>
+                                    <Text style={styles.kondateBannerSub}>使いたい食材を入れるだけで一汁三菜を提案</Text>
+                                </View>
+                                <MaterialCommunityIcons name="silverware-fork-knife" size={56} color="rgba(255,255,255,0.2)" style={styles.kondateBannerIcon} />
+                            </Surface>
+                        </TouchableOpacity>
+
                         <View style={styles.quickActionsRow}>
                             <TouchableOpacity style={styles.quickActionTile} onPress={() => navigation.navigate('Showcase')}>
                                 <Surface style={[styles.actionBanner, { backgroundColor: '#C5A059' }]} elevation={2}>
@@ -366,6 +384,13 @@ const styles = StyleSheet.create({
     actionTitle: { color: '#FFF', fontSize: 15, fontWeight: 'bold', marginTop: 4 },
     actionSubtitle: { color: 'rgba(255, 255, 255, 0.7)', fontSize: 10, marginTop: 2 },
     actionIconWrap: { position: 'absolute', bottom: -10, right: -10 },
+    kondateBannerWrap: { marginBottom: 16 },
+    kondateBanner: { borderRadius: 20, padding: 20, backgroundColor: '#2D6A4F', overflow: 'hidden', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    aiBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginBottom: 6, gap: 4 },
+    aiBadgeText: { fontSize: 10, fontWeight: '900', color: '#fff' },
+    kondateBannerTitle: { color: '#fff', fontSize: 17, fontWeight: 'bold', marginBottom: 4 },
+    kondateBannerSub: { color: 'rgba(255,255,255,0.75)', fontSize: 12 },
+    kondateBannerIcon: { position: 'absolute', right: -4, bottom: -8 },
     recipeBanner: { marginBottom: 20 },
     recipeBannerSurface: { borderRadius: 12, padding: 16, backgroundColor: '#FBF9F5', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     recipeBannerTitle: { fontWeight: 'bold', color: '#4E342E', fontSize: 15 },

@@ -14,23 +14,23 @@
         },
         {
             "source": "/guide",
-            "destination": "/api/guide"
+            "destination": "/api/pages?page=guide"
         },
         {
             "source": "/privacy",
-            "destination": "/api/privacy"
+            "destination": "/api/pages?page=privacy"
         },
         {
             "source": "/terms",
-            "destination": "/api/terms"
+            "destination": "/api/pages?page=terms"
         },
         {
             "source": "/about",
-            "destination": "/api/about"
+            "destination": "/api/pages?page=about"
         },
         {
             "source": "/contact",
-            "destination": "/api/contact"
+            "destination": "/api/pages?page=contact"
         },
         {
             "source": "/r/:recipeId/:versionId",

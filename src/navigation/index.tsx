@@ -13,6 +13,8 @@ import ShowcaseScreen from '../screens/ShowcaseScreen';
 import GuideScreen from '../screens/GuideScreen';
 import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 import TermsOfServiceScreen from '../screens/TermsOfServiceScreen';
+import KondateScreen from '../screens/KondateScreen';
+import KondatePreviewScreen from '../screens/KondatePreviewScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -31,6 +33,8 @@ export default function AppNavigator() {
                 <Stack.Screen name="EditRecipe" component={EditRecipeScreen} options={{ title: 'レシピ編集' }} />
                 <Stack.Screen name="Delta" component={DeltaScreen} options={{ title: '比率の差分' }} />
                 <Stack.Screen name="Guide" component={GuideScreen} options={{ title: '使い方ガイド' }} />
+                <Stack.Screen name="Kondate" component={KondateScreen} options={{ title: 'AI献立生成' }} />
+                <Stack.Screen name="KondatePreview" component={KondatePreviewScreen} options={{ title: '今日の献立' }} />
                 <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ title: 'プライバシーポリシー' }} />
                 <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} options={{ title: '利用規約' }} />
                 <Stack.Screen name="About" component={AboutScreen} options={{ title: ' About' }} />
