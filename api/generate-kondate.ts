@@ -1,6 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
+import Anthropic from '@anthropic-ai/sdk';
 
 export interface GeneratedDish {
     name: string;
@@ -22,8 +21,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'OPTIONS') return res.status(204).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    if (!process.env.GEMINI_API_KEY) {
-        return res.status(500).json({ error: 'GEMINI_API_KEY is not configured' });
+    if (!process.env.ANTHROPIC_API_KEY) {
+        return res.status(500).json({ error: 'ANTHROPIC_API_KEY is not configured' });
     }
 
     const { dishTypes, stapleFood, requiredIngredients, optionalIngredients, freeText } = req.body;
@@ -67,43 +66,18 @@ JSON以外のテキストは絶対に不要です。
   }
 ]`;
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
-    const callGemini = () => model.generateContent(prompt);
-
-    const isRateLimit = (e: any) =>
-        String(e?.message ?? '').includes('429') ||
-        String(e?.status ?? '') === '429' ||
-        String(e?.message ?? '').toLowerCase().includes('quota');
-
-    let result;
     try {
-        result = await callGemini();
-    } catch (e: any) {
-        console.error('[Gemini] error status:', e?.status);
-        console.error('[Gemini] error message:', e?.message);
-        console.error('[Gemini] error detail:', JSON.stringify(e?.errorDetails ?? e?.details ?? null));
-        if (isRateLimit(e)) {
-            await new Promise(r => setTimeout(r, 3000));
-            try {
-                result = await callGemini();
-            } catch (e2: any) {
-                console.error('[Gemini] retry error:', e2?.status, e2?.message);
-                if (isRateLimit(e2)) {
-                    return res.status(429).json({ error: 'AIが混み合っています。しばらく待ってから再試行してください。' });
-                }
-                return res.status(500).json({ error: e2.message });
-            }
-        } else {
-            return res.status(500).json({ error: e.message });
-        }
-    }
+        const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+        const message = await anthropic.messages.create({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 2048,
+            messages: [{ role: 'user', content: prompt }],
+        });
 
-    try {
-        const text = result.response.text();
+        const text = message.content[0].type === 'text' ? message.content[0].text : '';
         const jsonMatch = text.match(/\[[\s\S]*\]/);
-        if (!jsonMatch) throw new Error('Gemini returned invalid JSON');
+        if (!jsonMatch) throw new Error('Claude returned invalid JSON');
+
         const dishes = JSON.parse(jsonMatch[0]) as GeneratedDish[];
         return res.status(200).json({ dishes });
     } catch (e: any) {
