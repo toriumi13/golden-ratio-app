@@ -28,9 +28,7 @@ export default function KondateScreen() {
     );
     const [stapleFood, setStapleFood] = useState('ごはん');
     const [requiredIngredients, setRequiredIngredients] = useState<string[]>([]);
-    const [optionalIngredients, setOptionalIngredients] = useState<string[]>([]);
     const [reqInput, setReqInput] = useState('');
-    const [optInput, setOptInput] = useState('');
     const [freeText, setFreeText] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -80,7 +78,6 @@ export default function KondateScreen() {
                     dishTypes,
                     stapleFood,
                     requiredIngredients,
-                    optionalIngredients,
                     freeText,
                 }),
             });
@@ -116,7 +113,7 @@ export default function KondateScreen() {
                         <View style={styles.howToSteps}>
                             {[
                                 '作りたい料理の種類をタップして選ぶ',
-                                '主食と使いたい食材を入力する（任意）',
+                                '主食と使いたい食材を入力する（省略可）',
                                 '「献立を生成する」をタップ',
                                 '気に入ったレシピをまとめて保存',
                             ].map((step, i) => (
@@ -215,38 +212,6 @@ export default function KondateScreen() {
                             </View>
                         )}
 
-                        <Text style={[styles.ingredientLabel, { marginTop: 16 }]}>あれば使いたい</Text>
-                        <View style={styles.inputRow}>
-                            <TextInput
-                                style={styles.textInput}
-                                placeholder="例：にんじん"
-                                placeholderTextColor="#B0A090"
-                                value={optInput}
-                                onChangeText={setOptInput}
-                                onSubmitEditing={() => addChip(optInput, setOptionalIngredients, setOptInput)}
-                                returnKeyType="done"
-                            />
-                            <TouchableOpacity
-                                style={styles.addButton}
-                                onPress={() => addChip(optInput, setOptionalIngredients, setOptInput)}
-                            >
-                                <MaterialCommunityIcons name="plus" size={20} color="#fff" />
-                            </TouchableOpacity>
-                        </View>
-                        {optionalIngredients.length > 0 && (
-                            <View style={styles.chipRow}>
-                                {optionalIngredients.map((ing, i) => (
-                                    <TouchableOpacity
-                                        key={i}
-                                        style={styles.ingredientChipOptional}
-                                        onPress={() => removeChip(i, setOptionalIngredients)}
-                                    >
-                                        <Text style={styles.ingredientChipText}>{ing}</Text>
-                                        <MaterialCommunityIcons name="close" size={14} color="#4E342E" />
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                        )}
                     </Surface>
 
                     {/* その他の要望 */}
@@ -343,11 +308,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16,
         backgroundColor: '#FFF8EC', borderWidth: 1, borderColor: '#C5A059',
     },
-    ingredientChipOptional: {
-        flexDirection: 'row', alignItems: 'center', gap: 4,
-        paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16,
-        backgroundColor: '#F0F4F0', borderWidth: 1, borderColor: '#A8C5A0',
-    },
-    ingredientChipText: { fontSize: 13, color: '#4E342E' },
+ingredientChipText: { fontSize: 13, color: '#4E342E' },
     generateButton: { borderRadius: 16, marginTop: 8 },
 });
