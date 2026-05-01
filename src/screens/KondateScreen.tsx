@@ -85,6 +85,7 @@ export default function KondateScreen() {
                 }),
             });
             const data = await res.json();
+            if (res.status === 429) throw new Error(data.error || 'AIが混み合っています。しばらく待ってから再試行してください。');
             if (!res.ok) throw new Error(data.error || '生成に失敗しました');
             navigation.navigate('KondatePreview', { dishes: data.dishes as GeneratedDish[] });
         } catch (e: any) {

@@ -67,15 +67,39 @@ JSON以外のテキストは絶対に不要です。
   }
 ]`;
 
-    try {
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
+    const callGemini = () => model.generateContent(prompt);
+
+    const isRateLimit = (e: any) =>
+        String(e?.message ?? '').includes('429') ||
+        String(e?.status ?? '') === '429' ||
+        String(e?.message ?? '').toLowerCase().includes('quota');
+
+    let result;
+    try {
+        result = await callGemini();
+    } catch (e: any) {
+        if (isRateLimit(e)) {
+            await new Promise(r => setTimeout(r, 3000));
+            try {
+                result = await callGemini();
+            } catch (e2: any) {
+                if (isRateLimit(e2)) {
+                    return res.status(429).json({ error: 'AIが混み合っています。しばらく待ってから再試行してください。' });
+                }
+                return res.status(500).json({ error: e2.message });
+            }
+        } else {
+            return res.status(500).json({ error: e.message });
+        }
+    }
+
+    try {
+        const text = result.response.text();
         const jsonMatch = text.match(/\[[\s\S]*\]/);
         if (!jsonMatch) throw new Error('Gemini returned invalid JSON');
-
         const dishes = JSON.parse(jsonMatch[0]) as GeneratedDish[];
         return res.status(200).json({ dishes });
     } catch (e: any) {
