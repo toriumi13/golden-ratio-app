@@ -81,11 +81,15 @@ JSON以外のテキストは絶対に不要です。
     try {
         result = await callGemini();
     } catch (e: any) {
+        console.error('[Gemini] error status:', e?.status);
+        console.error('[Gemini] error message:', e?.message);
+        console.error('[Gemini] error detail:', JSON.stringify(e?.errorDetails ?? e?.details ?? null));
         if (isRateLimit(e)) {
             await new Promise(r => setTimeout(r, 3000));
             try {
                 result = await callGemini();
             } catch (e2: any) {
+                console.error('[Gemini] retry error:', e2?.status, e2?.message);
                 if (isRateLimit(e2)) {
                     return res.status(429).json({ error: 'AIが混み合っています。しばらく待ってから再試行してください。' });
                 }
