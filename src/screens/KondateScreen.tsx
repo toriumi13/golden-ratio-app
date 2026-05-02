@@ -9,15 +9,16 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type { GeneratedDish } from '../../api/generate-kondate';
 
 const DISH_TYPES: { key: string; label: string; apiLabel: string; icon: string }[] = [
-    { key: 'main',    label: '主菜',    apiLabel: '主菜',    icon: 'food' },
-    { key: 'side1',   label: '副菜①',  apiLabel: '副菜',    icon: 'food-apple-outline' },
-    { key: 'side2',   label: '副菜②',  apiLabel: '副菜',    icon: 'food-apple-outline' },
-    { key: 'side3',   label: '副菜③',  apiLabel: '副菜',    icon: 'food-apple-outline' },
-    { key: 'soup',    label: '汁物',    apiLabel: '汁物',    icon: 'bowl-mix-outline' },
-    { key: 'dessert', label: 'デザート', apiLabel: 'デザート', icon: 'cake-variant-outline' },
+    { key: 'main',    label: '主菜',     apiLabel: '主菜',                        icon: 'food' },
+    { key: 'side1',   label: '副菜①',   apiLabel: '副菜',                        icon: 'food-apple-outline' },
+    { key: 'side2',   label: '副菜②',   apiLabel: '副菜',                        icon: 'food-apple-outline' },
+    { key: 'side3',   label: '副菜③',   apiLabel: '副菜',                        icon: 'food-apple-outline' },
+    { key: 'soup',    label: '汁物',     apiLabel: '汁物',                        icon: 'bowl-mix-outline' },
+    { key: 'dessert', label: 'デザート', apiLabel: 'デザート',                    icon: 'cake-variant-outline' },
+    { key: 'rice',    label: 'ご飯もの', apiLabel: 'ご飯もの（炊き込み・丼など）', icon: 'rice' },
+    { key: 'noodle',  label: '麺類',     apiLabel: '麺類（パスタ・そば・うどんなど）', icon: 'noodles' },
+    { key: 'bread',   label: 'パン系',   apiLabel: 'パン系（サンドイッチ・トーストなど）', icon: 'bread-slice-outline' },
 ];
-
-const STAPLE_OPTIONS = ['ごはん', 'パン', '麺', 'なし'];
 const API_BASE = Platform.OS === 'web' ? '' : 'https://golden-ratio-app-zeta.vercel.app';
 
 export default function KondateScreen() {
@@ -26,7 +27,6 @@ export default function KondateScreen() {
     const [selectedDishKeys, setSelectedDishKeys] = useState<Set<string>>(
         new Set(['main', 'side1', 'side2'])
     );
-    const [stapleFood, setStapleFood] = useState('ごはん');
     const [requiredIngredients, setRequiredIngredients] = useState<string[]>([]);
     const [reqInput, setReqInput] = useState('');
     const [freeText, setFreeText] = useState('');
@@ -76,7 +76,6 @@ export default function KondateScreen() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     dishTypes,
-                    stapleFood,
                     requiredIngredients,
                     freeText,
                 }),
@@ -113,7 +112,7 @@ export default function KondateScreen() {
                         <View style={styles.howToSteps}>
                             {[
                                 '作りたい料理の種類をタップして選ぶ',
-                                '主食と使いたい食材を入力する（省略可）',
+                                '使いたい食材を入力する（省略可）',
                                 '「献立を生成する」をタップ',
                                 '気に入ったレシピをまとめて保存',
                             ].map((step, i) => (
@@ -125,6 +124,9 @@ export default function KondateScreen() {
                                 </View>
                             ))}
                         </View>
+                        <Text style={styles.howToNote}>
+                            ご飯もの・麺類・パン系を選ぶと、そのレシピも一緒に生成されます
+                        </Text>
                     </Surface>
 
                     {/* 料理の種類 */}
@@ -154,24 +156,6 @@ export default function KondateScreen() {
                                     </TouchableOpacity>
                                 );
                             })}
-                        </View>
-                    </Surface>
-
-                    {/* 主食 */}
-                    <Surface style={styles.card} elevation={1}>
-                        <Text style={styles.cardLabel}>主食</Text>
-                        <View style={styles.chipRow}>
-                            {STAPLE_OPTIONS.map(opt => (
-                                <TouchableOpacity
-                                    key={opt}
-                                    onPress={() => setStapleFood(opt)}
-                                    style={[styles.chip, stapleFood === opt && styles.chipActive]}
-                                >
-                                    <Text style={[styles.chipText, stapleFood === opt && styles.chipTextActive]}>
-                                        {opt}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
                         </View>
                     </Surface>
 
@@ -265,6 +249,7 @@ const styles = StyleSheet.create({
     },
     howToStepNumText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
     howToStepText: { fontSize: 13, color: '#2D6A4F', flex: 1 },
+    howToNote: { fontSize: 12, color: '#2D6A4F', marginTop: 10, opacity: 0.75 },
 
     card: { borderRadius: 16, padding: 16, backgroundColor: '#fff' },
     cardLabelRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 },
@@ -283,14 +268,6 @@ const styles = StyleSheet.create({
     dishTypeLabelActive: { color: '#fff' },
 
     chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    chip: {
-        paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-        backgroundColor: '#F5F0E8', borderWidth: 1, borderColor: '#E0C097',
-    },
-    chipActive: { backgroundColor: '#2D6A4F', borderColor: '#2D6A4F' },
-    chipText: { fontSize: 13, color: '#8C7853', fontWeight: '600' },
-    chipTextActive: { color: '#fff' },
-
     ingredientLabel: { fontSize: 13, fontWeight: '600', color: '#8C7853', marginBottom: 8 },
     inputRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
     textInput: {

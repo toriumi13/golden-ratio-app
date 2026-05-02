@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(500).json({ error: 'ANTHROPIC_API_KEY is not configured' });
     }
 
-    const { dishTypes, stapleFood, requiredIngredients, freeText } = req.body;
+    const { dishTypes, requiredIngredients, freeText } = req.body;
     const types: string[] = Array.isArray(dishTypes) ? dishTypes : [];
 
     if (types.length === 0) {
@@ -39,7 +39,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 【条件】
 - 生成する料理（順番通りに1品ずつ）:
 ${dishList}
-- 主食: ${stapleFood || 'なし'}
 - 使う食材: ${requiredIngredients?.length ? (requiredIngredients as string[]).join('、') : 'なし'}
 - その他の要望: ${freeText || 'なし'}
 
